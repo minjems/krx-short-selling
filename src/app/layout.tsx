@@ -13,8 +13,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KRX 공매도 대시보드",
-  description: "한국거래소 공매도 데이터를 실시간으로 추적하고 시각화하는 대시보드",
+  title: {
+    default: "KRX 공매도 - 한국 주식시장 공매도 데이터",
+    template: "%s - KRX 공매도",
+  },
+  description:
+    "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율을 실시간 추적하는 대시보드. 종목별 공매도 차트, 랭킹, 스크리너 제공.",
+  keywords: [
+    "공매도",
+    "KRX",
+    "한국거래소",
+    "공매도 비중",
+    "공매도 잔고",
+    "코스피",
+    "코스닥",
+    "주식",
+    "공매도 데이터",
+    "공매도 랭킹",
+  ],
+  openGraph: {
+    title: "KRX 공매도 - 한국 주식시장 공매도 데이터",
+    description:
+      "코스피·코스닥 공매도 비중 상위 종목 랭킹, 종목별 공매도 추이 차트, 스크리너",
+    type: "website",
+    locale: "ko_KR",
+    siteName: "KRX 공매도",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { StockDetailClient } from "./StockDetailClient";
@@ -7,6 +8,28 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ ticker: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { ticker } = await params;
+  const { data: stock } = await supabase
+    .from("stocks")
+    .select("name, market")
+    .eq("ticker", ticker)
+    .single();
+
+  if (!stock) {
+    return { title: "종목을 찾을 수 없습니다" };
+  }
+
+  return {
+    title: `${stock.name}(${ticker}) 공매도 현황`,
+    description: `${stock.name}(${ticker}) ${stock.market} 공매도 비중, 잔고비율 추이 차트 및 상세 데이터`,
+    openGraph: {
+      title: `${stock.name}(${ticker}) 공매도 현황 - KRX 공매도`,
+      description: `${stock.name} 공매도 비중·잔고비율 추이 차트`,
+    },
+  };
+}
 
 async function getStockData(ticker: string) {
   // 종목 기본 정보
@@ -103,6 +126,7 @@ export default async function StockPage({ params }: PageProps) {
           </Link>
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">랭킹</Link>
+            <Link href="/screener" className="hover:text-white transition-colors">스크리너</Link>
           </nav>
         </div>
       </header>
