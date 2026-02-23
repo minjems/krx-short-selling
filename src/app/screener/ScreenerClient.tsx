@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { formatBillions, netValueColor } from "@/lib/format";
 
 type ScreenerItem = {
   ticker: string;
@@ -12,59 +13,109 @@ type ScreenerItem = {
   shortRatio: number;
   closePrice: number;
   balanceRatio: number | null;
+  foreignNet: number | null;
+  institutionNet: number | null;
+  individualNet: number | null;
 };
 
-type SortKey = "shortRatio" | "balanceRatio" | "shortVolume" | "totalVolume" | "closePrice";
+type SortKey =
+  | "shortRatio"
+  | "balanceRatio"
+  | "shortVolume"
+  | "totalVolume"
+  | "closePrice"
+  | "foreignNet"
+  | "institutionNet"
+  | "individualNet";
 
 export function ScreenerClient({
   data,
   tradeDate,
   balanceDate,
+  investorDate,
 }: {
   data: ScreenerItem[];
   tradeDate: string;
   balanceDate: string | null;
+  investorDate?: string | null;
 }) {
   const [market, setMarket] = useState<"ALL" | "KOSPI" | "KOSDAQ">("ALL");
   const [minShortRatio, setMinShortRatio] = useState(0);
   const [maxShortRatio, setMaxShortRatio] = useState(100);
   const [minBalanceRatio, setMinBalanceRatio] = useState(0);
   const [maxBalanceRatio, setMaxBalanceRatio] = useState(100);
+  const [investorFilter, setInvestorFilter] = useState<
+    "none" | "foreignBuy" | "foreignSell" | "institutionBuy" | "institutionSell" | "individualBuy" | "individualSell"
+  >("none");
   const [sortKey, setSortKey] = useState<SortKey>("shortRatio");
   const [sortAsc, setSortAsc] = useState(false);
   const [search, setSearch] = useState("");
 
-  const hasActiveFilter = search.length > 0 || market !== "ALL" || minShortRatio > 0 || maxShortRatio < 100 || minBalanceRatio > 0 || maxBalanceRatio < 100;
+  const hasActiveFilter =
+    search.length > 0 ||
+    market !== "ALL" ||
+    minShortRatio > 0 ||
+    maxShortRatio < 100 ||
+    minBalanceRatio > 0 ||
+    maxBalanceRatio < 100 ||
+    investorFilter !== "none";
   const DISPLAY_LIMIT = 100;
 
   const filtered = useMemo(() => {
     const result = data
       .filter((item) => {
         if (market !== "ALL" && item.market !== market) return false;
-        if (item.shortRatio < minShortRatio || item.shortRatio > maxShortRatio) return false;
+        if (item.shortRatio < minShortRatio || item.shortRatio > maxShortRatio)
+          return false;
         if (minBalanceRatio > 0 || maxBalanceRatio < 100) {
           if (item.balanceRatio === null) return false;
-          if (item.balanceRatio < minBalanceRatio || item.balanceRatio > maxBalanceRatio) return false;
+          if (
+            item.balanceRatio < minBalanceRatio ||
+            item.balanceRatio > maxBalanceRatio
+          )
+            return false;
         }
+        // 수급 필터
+        if (investorFilter === "foreignBuy" && (item.foreignNet === null || item.foreignNet <= 0)) return false;
+        if (investorFilter === "foreignSell" && (item.foreignNet === null || item.foreignNet >= 0)) return false;
+        if (investorFilter === "institutionBuy" && (item.institutionNet === null || item.institutionNet <= 0)) return false;
+        if (investorFilter === "institutionSell" && (item.institutionNet === null || item.institutionNet >= 0)) return false;
+        if (investorFilter === "individualBuy" && (item.individualNet === null || item.individualNet <= 0)) return false;
+        if (investorFilter === "individualSell" && (item.individualNet === null || item.individualNet >= 0)) return false;
+
         if (search) {
           const q = search.toLowerCase();
-          if (!item.name.toLowerCase().includes(q) && !item.ticker.toLowerCase().includes(q)) {
+          if (
+            !item.name.toLowerCase().includes(q) &&
+            !item.ticker.toLowerCase().includes(q)
+          ) {
             return false;
           }
         }
         return true;
       })
       .sort((a, b) => {
-        const aVal = a[sortKey] ?? -1;
-        const bVal = b[sortKey] ?? -1;
+        const aVal = a[sortKey] ?? -Infinity;
+        const bVal = b[sortKey] ?? -Infinity;
         const diff = (aVal as number) - (bVal as number);
         return sortAsc ? diff : -diff;
       });
 
-    // 필터/검색이 없으면 상위 N개만 표시
     if (!hasActiveFilter) return result.slice(0, DISPLAY_LIMIT);
     return result;
-  }, [data, market, minShortRatio, maxShortRatio, minBalanceRatio, maxBalanceRatio, sortKey, sortAsc, search, hasActiveFilter]);
+  }, [
+    data,
+    market,
+    minShortRatio,
+    maxShortRatio,
+    minBalanceRatio,
+    maxBalanceRatio,
+    investorFilter,
+    sortKey,
+    sortAsc,
+    search,
+    hasActiveFilter,
+  ]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -76,8 +127,11 @@ export function ScreenerClient({
   }
 
   function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col) return <span className="text-zinc-600 ml-1">↕</span>;
-    return <span className="text-blue-400 ml-1">{sortAsc ? "↑" : "↓"}</span>;
+    if (sortKey !== col)
+      return <span className="text-zinc-600 ml-1">↕</span>;
+    return (
+      <span className="text-blue-400 ml-1">{sortAsc ? "↑" : "↓"}</span>
+    );
   }
 
   function formatNumber(n: number): string {
@@ -91,28 +145,52 @@ export function ScreenerClient({
     return "text-zinc-300";
   }
 
+  const investorOptions: { key: typeof investorFilter; label: string }[] = [
+    { key: "none", label: "전체" },
+    { key: "foreignBuy", label: "외국인 순매수" },
+    { key: "foreignSell", label: "외국인 순매도" },
+    { key: "institutionBuy", label: "기관 순매수" },
+    { key: "institutionSell", label: "기관 순매도" },
+    { key: "individualBuy", label: "개인 순매수" },
+    { key: "individualSell", label: "개인 순매도" },
+  ];
+
   return (
     <div>
       {/* Date Badges */}
       <div className="flex flex-wrap gap-3 mb-6 text-xs">
         <div>
           <span className="text-zinc-500">거래량 기준일</span>
-          <span className="ml-1.5 font-mono bg-zinc-800 px-2 py-0.5 rounded">{tradeDate}</span>
+          <span className="ml-1.5 font-mono bg-zinc-800 px-2 py-0.5 rounded">
+            {tradeDate}
+          </span>
         </div>
         {balanceDate && (
           <div>
             <span className="text-zinc-500">잔고 기준일</span>
-            <span className="ml-1.5 font-mono bg-zinc-800 px-2 py-0.5 rounded">{balanceDate}</span>
+            <span className="ml-1.5 font-mono bg-zinc-800 px-2 py-0.5 rounded">
+              {balanceDate}
+            </span>
+          </div>
+        )}
+        {investorDate && (
+          <div>
+            <span className="text-zinc-500">수급 기준일</span>
+            <span className="ml-1.5 font-mono bg-zinc-800 px-2 py-0.5 rounded">
+              {investorDate}
+            </span>
           </div>
         )}
       </div>
 
       {/* Filters */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           {/* Search */}
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">종목 검색</label>
+            <label className="block text-xs text-zinc-500 mb-1">
+              종목 검색
+            </label>
             <input
               type="text"
               placeholder="종목명 또는 코드"
@@ -142,9 +220,35 @@ export function ScreenerClient({
             </div>
           </div>
 
+          {/* Investor Filter */}
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1">
+              수급 필터
+            </label>
+            <select
+              value={investorFilter}
+              onChange={(e) =>
+                setInvestorFilter(
+                  e.target.value as typeof investorFilter
+                )
+              }
+              className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+            >
+              {investorOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Short Ratio Range */}
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">공매도 비중 (%)</label>
+            <label className="block text-xs text-zinc-500 mb-1">
+              공매도 비중 (%)
+            </label>
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -168,7 +272,9 @@ export function ScreenerClient({
 
           {/* Balance Ratio Range */}
           <div>
-            <label className="block text-xs text-zinc-500 mb-1">잔고비율 (%)</label>
+            <label className="block text-xs text-zinc-500 mb-1">
+              잔고비율 (%)
+            </label>
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -196,7 +302,8 @@ export function ScreenerClient({
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-zinc-500">
           {filtered.length}종목
-          {!hasActiveFilter && ` (전체 ${data.length}종목 중 상위 ${DISPLAY_LIMIT}개 표시 - 검색하면 전체에서 찾습니다)`}
+          {!hasActiveFilter &&
+            ` (전체 ${data.length}종목 중 상위 ${DISPLAY_LIMIT}개 표시 - 검색하면 전체에서 찾습니다)`}
         </span>
       </div>
 
@@ -207,36 +314,50 @@ export function ScreenerClient({
             <tr className="border-b border-zinc-800 text-zinc-400">
               <th className="text-left py-3 px-2 w-10">#</th>
               <th className="text-left py-3 px-2">종목</th>
-              <th className="text-left py-3 px-2 hidden sm:table-cell">시장</th>
+              <th className="text-left py-3 px-2 hidden sm:table-cell">
+                시장
+              </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
                 onClick={() => handleSort("shortRatio")}
               >
-                공매도비중<SortIcon col="shortRatio" />
-              </th>
-              <th
-                className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
-                onClick={() => handleSort("balanceRatio")}
-              >
-                잔고비율<SortIcon col="balanceRatio" />
+                공매도비중
+                <SortIcon col="shortRatio" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
-                onClick={() => handleSort("shortVolume")}
+                onClick={() => handleSort("balanceRatio")}
               >
-                공매도량<SortIcon col="shortVolume" />
-              </th>
-              <th
-                className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden lg:table-cell"
-                onClick={() => handleSort("totalVolume")}
-              >
-                총거래량<SortIcon col="totalVolume" />
+                잔고비율
+                <SortIcon col="balanceRatio" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
+                onClick={() => handleSort("foreignNet")}
+              >
+                외국인
+                <SortIcon col="foreignNet" />
+              </th>
+              <th
+                className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
+                onClick={() => handleSort("institutionNet")}
+              >
+                기관
+                <SortIcon col="institutionNet" />
+              </th>
+              <th
+                className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden lg:table-cell"
+                onClick={() => handleSort("individualNet")}
+              >
+                개인
+                <SortIcon col="individualNet" />
+              </th>
+              <th
+                className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden lg:table-cell"
                 onClick={() => handleSort("closePrice")}
               >
-                종가<SortIcon col="closePrice" />
+                종가
+                <SortIcon col="closePrice" />
               </th>
             </tr>
           </thead>
@@ -253,7 +374,9 @@ export function ScreenerClient({
                     className="hover:text-blue-400 transition-colors"
                   >
                     <span className="font-medium">{item.name}</span>
-                    <span className="text-zinc-500 text-xs ml-1.5">{item.ticker}</span>
+                    <span className="text-zinc-500 text-xs ml-1.5">
+                      {item.ticker}
+                    </span>
                   </Link>
                 </td>
                 <td className="py-2.5 px-2 hidden sm:table-cell">
@@ -267,20 +390,61 @@ export function ScreenerClient({
                     {item.market}
                   </span>
                 </td>
-                <td className={`py-2.5 px-2 text-right ${ratioColor(item.shortRatio)}`}>
+                <td
+                  className={`py-2.5 px-2 text-right ${ratioColor(
+                    item.shortRatio
+                  )}`}
+                >
                   {item.shortRatio.toFixed(2)}%
                 </td>
-                <td className={`py-2.5 px-2 text-right ${item.balanceRatio !== null ? ratioColor(item.balanceRatio) : "text-zinc-600"}`}>
-                  {item.balanceRatio !== null ? `${item.balanceRatio.toFixed(2)}%` : "-"}
+                <td
+                  className={`py-2.5 px-2 text-right hidden md:table-cell ${
+                    item.balanceRatio !== null
+                      ? ratioColor(item.balanceRatio)
+                      : "text-zinc-600"
+                  }`}
+                >
+                  {item.balanceRatio !== null
+                    ? `${item.balanceRatio.toFixed(2)}%`
+                    : "-"}
                 </td>
-                <td className="py-2.5 px-2 text-right text-zinc-300 hidden md:table-cell">
-                  {formatNumber(item.shortVolume)}
+                <td
+                  className={`py-2.5 px-2 text-right font-mono text-xs ${
+                    item.foreignNet !== null
+                      ? netValueColor(item.foreignNet)
+                      : "text-zinc-600"
+                  }`}
+                >
+                  {item.foreignNet !== null
+                    ? `${item.foreignNet > 0 ? "+" : ""}${formatBillions(item.foreignNet)}`
+                    : "-"}
                 </td>
-                <td className="py-2.5 px-2 text-right text-zinc-400 hidden lg:table-cell">
-                  {formatNumber(item.totalVolume)}
+                <td
+                  className={`py-2.5 px-2 text-right font-mono text-xs hidden md:table-cell ${
+                    item.institutionNet !== null
+                      ? netValueColor(item.institutionNet)
+                      : "text-zinc-600"
+                  }`}
+                >
+                  {item.institutionNet !== null
+                    ? `${item.institutionNet > 0 ? "+" : ""}${formatBillions(item.institutionNet)}`
+                    : "-"}
                 </td>
-                <td className="py-2.5 px-2 text-right text-zinc-300">
-                  {item.closePrice > 0 ? `${formatNumber(item.closePrice)}원` : "-"}
+                <td
+                  className={`py-2.5 px-2 text-right font-mono text-xs hidden lg:table-cell ${
+                    item.individualNet !== null
+                      ? netValueColor(item.individualNet)
+                      : "text-zinc-600"
+                  }`}
+                >
+                  {item.individualNet !== null
+                    ? `${item.individualNet > 0 ? "+" : ""}${formatBillions(item.individualNet)}`
+                    : "-"}
+                </td>
+                <td className="py-2.5 px-2 text-right text-zinc-300 hidden lg:table-cell">
+                  {item.closePrice > 0
+                    ? `${formatNumber(item.closePrice)}원`
+                    : "-"}
                 </td>
               </tr>
             ))}

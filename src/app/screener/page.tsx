@@ -6,8 +6,9 @@ import { AdBanner } from "@/components/AdBanner";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "종목 검색 - KRX 공매도",
-  description: "공매도 비중, 잔고비율, 시장별 필터로 종목을 검색합니다.",
+  title: "종목 검색",
+  description:
+    "공매도 비중, 잔고비율, 투자자별 수급 필터로 종목을 검색합니다. 외국인·기관·개인 순매수대금 기준 정렬 지원.",
 };
 
 async function getScreenerData() {
@@ -85,9 +86,45 @@ async function getScreenerData() {
     }
   }
 
+  // 투자자별 순매수대금 (최신일 기준)
+  const { data: latestInv } = await supabase
+    .from("investor_trading")
+    .select("trade_date")
+    .order("trade_date", { ascending: false })
+    .limit(1)
+    .single();
+
+  const investorDate = latestInv?.trade_date;
+  // { ticker: { foreign, institution, individual } }
+  const investorMap: Record<string, { foreign: number; institution: number; individual: number }> = {};
+
+  if (investorDate) {
+    let iOffset = 0;
+    while (true) {
+      const { data: invData } = await supabase
+        .from("investor_trading")
+        .select("ticker, investor_type, net_value")
+        .eq("trade_date", investorDate)
+        .range(iOffset, iOffset + PAGE_SIZE - 1);
+
+      if (!invData || invData.length === 0) break;
+      for (const row of invData) {
+        if (!investorMap[row.ticker]) {
+          investorMap[row.ticker] = { foreign: 0, institution: 0, individual: 0 };
+        }
+        if (row.investor_type === "9000") investorMap[row.ticker].foreign = row.net_value;
+        else if (row.investor_type === "7050") investorMap[row.ticker].institution = row.net_value;
+        else if (row.investor_type === "8000") investorMap[row.ticker].individual = row.net_value;
+      }
+      if (invData.length < PAGE_SIZE) break;
+      iOffset += PAGE_SIZE;
+    }
+  }
+
   return {
     tradeDate,
     balanceDate: balanceDate || null,
+    investorDate: investorDate || null,
     data: allVolume.map((row) => ({
       ticker: row.ticker,
       name: row.stocks?.name || "",
@@ -97,6 +134,9 @@ async function getScreenerData() {
       shortRatio: row.short_ratio,
       closePrice: row.close_price,
       balanceRatio: balanceMap[row.ticker] ?? null,
+      foreignNet: investorMap[row.ticker]?.foreign ?? null,
+      institutionNet: investorMap[row.ticker]?.institution ?? null,
+      individualNet: investorMap[row.ticker]?.individual ?? null,
     })),
   };
 }
@@ -124,7 +164,7 @@ export default async function ScreenerPage() {
       <main className="max-w-6xl mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold mb-2">종목 검색</h2>
         <p className="text-sm text-zinc-500 mb-6">
-          공매도 비중, 잔고비율, 시장별 필터로 종목을 검색합니다.
+          공매도 비중, 잔고비율, 투자자별 수급 필터로 종목을 검색합니다.
         </p>
 
         <AdBanner position="header" className="mb-6" />
@@ -134,6 +174,7 @@ export default async function ScreenerPage() {
             data={result.data}
             tradeDate={result.tradeDate}
             balanceDate={result.balanceDate}
+            investorDate={result.investorDate}
           />
         ) : (
           <div className="text-center py-20 text-zinc-500">
