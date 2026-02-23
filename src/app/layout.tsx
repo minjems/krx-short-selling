@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s - KRX 공매도",
   },
   description:
-    "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율을 실시간 추적하는 대시보드. 종목별 공매도 차트, 랭킹, 스크리너 제공.",
+    "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율을 실시간 추적하는 대시보드. 종목별 공매도 차트, 랭킹, 종목 검색 제공.",
   keywords: [
     "공매도",
     "KRX",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "KRX 공매도 - 한국 주식시장 공매도 데이터",
     description:
-      "코스피·코스닥 공매도 비중 상위 종목 랭킹, 종목별 공매도 추이 차트, 스크리너",
+      "코스피·코스닥 공매도 비중 상위 종목 랭킹, 종목별 공매도 추이 차트, 종목 검색",
     type: "website",
     locale: "ko_KR",
     siteName: "KRX 공매도",

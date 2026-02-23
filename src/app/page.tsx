@@ -72,7 +72,7 @@ export default async function Home() {
           </Link>
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="text-white">랭킹</Link>
-            <Link href="/screener" className="hover:text-white transition-colors">스크리너</Link>
+            <Link href="/screener" className="hover:text-white transition-colors">종목 검색</Link>
           </nav>
         </div>
       </header>

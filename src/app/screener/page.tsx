@@ -5,7 +5,7 @@ import { ScreenerClient } from "./ScreenerClient";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "스크리너 - KRX 공매도",
+  title: "종목 검색 - KRX 공매도",
   description: "공매도 비중, 잔고비율, 시장별 필터로 종목을 검색합니다.",
 };
 
@@ -113,14 +113,14 @@ export default async function ScreenerPage() {
           </Link>
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">랭킹</Link>
-            <Link href="/screener" className="text-white">스크리너</Link>
+            <Link href="/screener" className="text-white">종목 검색</Link>
           </nav>
         </div>
       </header>
 
       {/* Main */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold mb-2">스크리너</h2>
+        <h2 className="text-2xl font-bold mb-2">종목 검색</h2>
         <p className="text-sm text-zinc-500 mb-6">
           공매도 비중, 잔고비율, 시장별 필터로 종목을 검색합니다.
         </p>
