@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ScreenerClient } from "./ScreenerClient";
+import { AdBanner } from "@/components/AdBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,8 @@ export default async function ScreenerPage() {
         <p className="text-sm text-zinc-500 mb-6">
           공매도 비중, 잔고비율, 시장별 필터로 종목을 검색합니다.
         </p>
+
+        <AdBanner position="header" className="mb-6" />
 
         {result ? (
           <ScreenerClient

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { RankingTable } from "@/components/RankingTable";
+import { AdBanner } from "@/components/AdBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,9 @@ export default async function Home() {
           </div>
         )}
 
+        {/* Ad */}
+        <AdBanner position="header" className="mb-6" />
+
         {/* Title */}
         <h2 className="text-2xl font-bold mb-6">공매도 비중 상위 종목</h2>
 
@@ -102,8 +106,13 @@ export default async function Home() {
         )}
       </main>
 
+      {/* Footer Ad */}
+      <div className="max-w-6xl mx-auto px-4 mt-8">
+        <AdBanner position="footer" />
+      </div>
+
       {/* Footer */}
-      <footer className="border-t border-zinc-800 mt-16">
+      <footer className="border-t border-zinc-800 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-6 text-xs text-zinc-500 space-y-2">
           <p>데이터 출처: 한국거래소(KRX) | 본 사이트는 투자 권유 목적이 아닙니다.</p>
           <p>공매도 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>

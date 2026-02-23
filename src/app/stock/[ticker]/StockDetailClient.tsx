@@ -2,6 +2,7 @@
 
 import { ShortRatioChart } from "@/components/ShortRatioChart";
 import { BalanceChart } from "@/components/BalanceChart";
+import { AdBanner } from "@/components/AdBanner";
 
 type Summary = {
   closePrice: number;
@@ -102,6 +103,9 @@ export function StockDetailClient({
           <div className="text-center py-10 text-zinc-500">데이터가 없습니다.</div>
         )}
       </div>
+
+      {/* Ad between charts */}
+      <AdBanner position="content" className="mb-6" />
 
       {/* Balance Chart */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
