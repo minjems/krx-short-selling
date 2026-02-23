@@ -31,3 +31,49 @@ export const INVESTOR_LABELS: Record<string, string> = {
   "9000": "외국인",
   "7050": "기관",
 };
+
+// --- 밸류에이션 관련 ---
+
+export function perColor(per: number | null): string {
+  if (per === null || per <= 0) return "text-zinc-500";
+  if (per < 8) return "text-green-400 font-semibold";
+  if (per < 15) return "text-zinc-300";
+  if (per < 30) return "text-orange-400";
+  return "text-red-400 font-semibold";
+}
+
+export function pbrColor(pbr: number | null): string {
+  if (pbr === null || pbr <= 0) return "text-zinc-500";
+  if (pbr < 0.7) return "text-green-400 font-semibold";
+  if (pbr < 1.0) return "text-green-300";
+  if (pbr < 2.0) return "text-zinc-300";
+  return "text-red-400";
+}
+
+export function dvdYldColor(yld: number | null): string {
+  if (yld === null || yld <= 0) return "text-zinc-500";
+  if (yld >= 5) return "text-green-400 font-semibold";
+  if (yld >= 3) return "text-green-300";
+  if (yld >= 1) return "text-zinc-300";
+  return "text-zinc-500";
+}
+
+export function compositeColor(score: number | null): string {
+  if (score === null) return "text-zinc-500";
+  if (score >= 80) return "text-green-400 font-semibold";
+  if (score >= 60) return "text-green-300";
+  if (score >= 40) return "text-zinc-300";
+  if (score >= 20) return "text-orange-400";
+  return "text-red-400 font-semibold";
+}
+
+export function formatPer(per: number | null): string {
+  if (per === null) return "-";
+  if (per < 0) return `${per.toFixed(2)} (적자)`;
+  return per.toFixed(2);
+}
+
+export function formatPbr(pbr: number | null): string {
+  if (pbr === null) return "-";
+  return pbr.toFixed(2);
+}

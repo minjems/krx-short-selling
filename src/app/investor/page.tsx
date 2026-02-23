@@ -75,6 +75,12 @@ export default async function InvestorPage() {
               수급
             </Link>
             <Link
+              href="/valuation"
+              className="hover:text-white transition-colors"
+            >
+              밸류에이션
+            </Link>
+            <Link
               href="/screener"
               className="hover:text-white transition-colors"
             >

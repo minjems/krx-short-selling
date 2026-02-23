@@ -4,6 +4,13 @@ import { ShortRatioChart } from "@/components/ShortRatioChart";
 import { BalanceChart } from "@/components/BalanceChart";
 import { InvestorFlowChart } from "@/components/InvestorFlowChart";
 import { AdBanner } from "@/components/AdBanner";
+import {
+  perColor,
+  pbrColor,
+  dvdYldColor,
+  formatPer,
+  formatPbr,
+} from "@/lib/format";
 
 type Summary = {
   closePrice: number;
@@ -44,16 +51,28 @@ function ratioColor(ratio: number): string {
 
 type InvestorFlowData = Record<string, { date: string; netValue: number }[]>;
 
+type ValuationData = {
+  tradeDate: string;
+  per: number | null;
+  pbr: number | null;
+  eps: number | null;
+  bps: number | null;
+  dps: number | null;
+  dvdYld: number | null;
+};
+
 export function StockDetailClient({
   summary,
   volumeHistory,
   balanceHistory,
   investorHistory,
+  valuation,
 }: {
   summary: Summary;
   volumeHistory: VolumeItem[];
   balanceHistory: BalanceItem[];
   investorHistory?: InvestorFlowData;
+  valuation?: ValuationData | null;
 }) {
   return (
     <>
@@ -98,6 +117,56 @@ export function StockDetailClient({
           </div>
         </div>
       </div>
+
+      {/* Valuation Card */}
+      {valuation && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold">밸류에이션</h3>
+            <span className="text-xs text-zinc-500">{valuation.tradeDate}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">PER</div>
+              <div className={`text-lg font-bold ${perColor(valuation.per)}`}>
+                {formatPer(valuation.per)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">PBR</div>
+              <div className={`text-lg font-bold ${pbrColor(valuation.pbr)}`}>
+                {formatPbr(valuation.pbr)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">EPS</div>
+              <div className="text-lg font-bold text-zinc-300">
+                {valuation.eps !== null
+                  ? `${formatNumber(valuation.eps)}원`
+                  : "-"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">BPS</div>
+              <div className="text-lg font-bold text-zinc-300">
+                {valuation.bps !== null
+                  ? `${formatNumber(valuation.bps)}원`
+                  : "-"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-zinc-500 mb-1">배당수익률</div>
+              <div
+                className={`text-lg font-bold ${dvdYldColor(valuation.dvdYld)}`}
+              >
+                {valuation.dvdYld !== null && valuation.dvdYld > 0
+                  ? `${valuation.dvdYld.toFixed(2)}%`
+                  : "-"}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Short Ratio Chart */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">

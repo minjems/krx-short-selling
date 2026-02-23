@@ -65,6 +65,16 @@ async function getStockData(ticker: string) {
     .order("trade_date", { ascending: true })
     .limit(270);
 
+  // 밸류에이션 (최신 1건)
+  const { data: valuationData } = await supabase
+    .from("stock_valuation")
+    .select("trade_date, per, pbr, eps, bps, dps, dvd_yld")
+    .eq("ticker", ticker)
+    .not("per", "is", null)
+    .order("trade_date", { ascending: false })
+    .limit(1)
+    .single();
+
   const latestVolume = volumeData && volumeData.length > 0
     ? volumeData[volumeData.length - 1]
     : null;
@@ -109,6 +119,17 @@ async function getStockData(ticker: string) {
       }
       return byType;
     })(),
+    valuation: valuationData
+      ? {
+          tradeDate: valuationData.trade_date,
+          per: valuationData.per,
+          pbr: valuationData.pbr,
+          eps: valuationData.eps,
+          bps: valuationData.bps,
+          dps: valuationData.dps,
+          dvdYld: valuationData.dvd_yld,
+        }
+      : null,
   };
 }
 
@@ -147,6 +168,7 @@ export default async function StockPage({ params }: PageProps) {
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">공매도</Link>
             <Link href="/investor" className="hover:text-white transition-colors">수급</Link>
+            <Link href="/valuation" className="hover:text-white transition-colors">밸류에이션</Link>
             <Link href="/screener" className="hover:text-white transition-colors">종목 검색</Link>
           </nav>
         </div>
@@ -186,6 +208,7 @@ export default async function StockPage({ params }: PageProps) {
           volumeHistory={data.volumeHistory}
           balanceHistory={data.balanceHistory}
           investorHistory={data.investorHistory}
+          valuation={data.valuation}
         />
       </main>
 

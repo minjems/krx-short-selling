@@ -63,6 +63,31 @@ CREATE INDEX IF NOT EXISTS idx_short_balance_date ON short_balance(trade_date DE
 CREATE INDEX IF NOT EXISTS idx_short_balance_ticker ON short_balance(ticker);
 CREATE INDEX IF NOT EXISTS idx_inv_type_date ON investor_trading(investor_type, trade_date);
 CREATE INDEX IF NOT EXISTS idx_inv_ticker_date ON investor_trading(ticker, trade_date);
+
+-- stocks 테이블에 업종 컬럼 추가
+ALTER TABLE stocks ADD COLUMN IF NOT EXISTS sector VARCHAR(50) DEFAULT NULL;
+
+-- 5. 밸류에이션 테이블 (일별 PER/PBR/배당수익률)
+CREATE TABLE IF NOT EXISTS stock_valuation (
+  trade_date DATE NOT NULL,
+  ticker VARCHAR(10) NOT NULL REFERENCES stocks(ticker),
+  per NUMERIC(10,2),
+  pbr NUMERIC(10,2),
+  eps NUMERIC(12,0),
+  bps NUMERIC(12,0),
+  dps NUMERIC(10,0),
+  dvd_yld NUMERIC(6,2),
+  close_price INTEGER,
+  PRIMARY KEY (trade_date, ticker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_valuation_date ON stock_valuation(trade_date DESC);
+CREATE INDEX IF NOT EXISTS idx_valuation_ticker ON stock_valuation(ticker);
+
+-- RLS
+ALTER TABLE stock_valuation ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow anonymous read valuation" ON stock_valuation;
+CREATE POLICY "Allow anonymous read valuation" ON stock_valuation FOR SELECT USING (true);
 """
 
 def main():

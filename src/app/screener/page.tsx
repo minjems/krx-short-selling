@@ -155,6 +155,7 @@ export default async function ScreenerPage() {
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">공매도</Link>
             <Link href="/investor" className="hover:text-white transition-colors">수급</Link>
+            <Link href="/valuation" className="hover:text-white transition-colors">밸류에이션</Link>
             <Link href="/screener" className="text-white">종목 검색</Link>
           </nav>
         </div>

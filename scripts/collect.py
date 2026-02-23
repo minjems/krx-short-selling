@@ -1,5 +1,5 @@
 """
-KRX 공매도 + 투자자별 수급 데이터 수집 스크립트
+KRX 공매도 + 투자자별 수급 + 밸류에이션 데이터 수집 스크립트
 data.krx.co.kr 직접 스크래핑으로 데이터를 가져와서 Supabase에 저장
 """
 import os
@@ -53,6 +53,20 @@ def parse_float(s):
     if not s or s == "-":
         return 0.0
     return float(s.replace(",", ""))
+
+
+def parse_nullable_float(s):
+    """콤마 포함 문자열을 float로 변환, "-"이면 None"""
+    if not s or s == "-" or s.strip() == "":
+        return None
+    return float(s.replace(",", ""))
+
+
+def parse_nullable_int(s):
+    """콤마 포함 문자열을 int로 변환, "-"이면 None"""
+    if not s or s == "-" or s.strip() == "":
+        return None
+    return int(s.replace(",", ""))
 
 
 def get_connection():
@@ -338,6 +352,114 @@ def collect_investor_trading(conn, date_str):
     cur.close()
 
 
+def collect_valuation(conn, date_str):
+    """특정 날짜의 PER/PBR/배당수익률 수집 (MDCSTAT03501)"""
+    cur = conn.cursor()
+
+    try:
+        items = krx_post_output({
+            "bld": "dbms/MDC/STAT/standard/MDCSTAT03501",
+            "mktId": "ALL",
+            "trdDd": date_str,
+        })
+
+        if not items:
+            print(f"  {date_str} 밸류에이션 데이터 없음")
+            cur.close()
+            return
+
+        rows = []
+        for item in items:
+            ticker = item.get("ISU_SRT_CD", "")
+            if not ticker:
+                continue
+            rows.append((
+                format_date(date_str),
+                ticker,
+                parse_nullable_float(item.get("PER", "-")),
+                parse_nullable_float(item.get("PBR", "-")),
+                parse_nullable_int(item.get("EPS", "-")),
+                parse_nullable_int(item.get("BPS", "-")),
+                parse_nullable_int(item.get("DPS", "-")),
+                parse_nullable_float(item.get("DVD_YLD", "-")),
+                parse_int(item.get("TDD_CLSPRC", "0")),
+            ))
+
+        if rows:
+            execute_values(
+                cur,
+                """
+                INSERT INTO stock_valuation
+                  (trade_date, ticker, per, pbr, eps, bps, dps, dvd_yld, close_price)
+                VALUES %s
+                ON CONFLICT (trade_date, ticker) DO UPDATE SET
+                    per = EXCLUDED.per,
+                    pbr = EXCLUDED.pbr,
+                    eps = EXCLUDED.eps,
+                    bps = EXCLUDED.bps,
+                    dps = EXCLUDED.dps,
+                    dvd_yld = EXCLUDED.dvd_yld,
+                    close_price = EXCLUDED.close_price
+                """,
+                rows
+            )
+            conn.commit()
+            print(f"  {date_str} 밸류에이션 {len(rows)}건 저장")
+
+    except Exception as e:
+        print(f"  {date_str} 밸류에이션 수집 실패: {e}")
+        conn.rollback()
+
+    cur.close()
+
+
+def collect_sector(conn, date_str):
+    """업종 분류 수집 (MDCSTAT03901) -> stocks 테이블 sector 컬럼 업데이트"""
+    cur = conn.cursor()
+    total = 0
+
+    for mkt_code in ["STK", "KSQ"]:
+        try:
+            res = requests.post(KRX_URL, headers=KRX_HEADERS, data={
+                "bld": "dbms/MDC/STAT/standard/MDCSTAT03901",
+                "mktId": mkt_code,
+                "trdDd": date_str,
+            }, timeout=30)
+            res.raise_for_status()
+            items = res.json().get("block1", [])
+
+            if not items:
+                continue
+
+            rows = []
+            for item in items:
+                ticker = item.get("ISU_SRT_CD", "")
+                sector = item.get("IDX_IND_NM", "")
+                if ticker and sector:
+                    rows.append((sector, ticker))
+
+            if rows:
+                cur.executemany(
+                    "UPDATE stocks SET sector = %s WHERE ticker = %s",
+                    rows
+                )
+                conn.commit()
+                total += len(rows)
+
+            time.sleep(0.5)
+
+        except Exception as e:
+            print(f"  [{mkt_code}] 업종 분류 수집 실패: {e}")
+            conn.rollback()
+
+    if total:
+        print(f"  업종 분류 {total}건 업데이트")
+    else:
+        print(f"  {date_str} 업종 분류 데이터 없음")
+
+    cur.close()
+
+
 def collect_daily(date_str=None):
     """하루치 데이터 수집"""
     if date_str is None:
@@ -369,6 +491,16 @@ def collect_daily(date_str=None):
         # 투자자별 매매동향
         print(f"투자자별 매매동향 수집 ({date_str})...")
         collect_investor_trading(conn, date_str)
+        time.sleep(1)
+
+        # 밸류에이션 (PER/PBR/배당수익률)
+        print(f"밸류에이션 수집 ({date_str})...")
+        collect_valuation(conn, date_str)
+        time.sleep(1)
+
+        # 업종 분류
+        print("업종 분류 업데이트...")
+        collect_sector(conn, date_str)
 
         print(f"=== {date_str} 수집 완료 ===\n")
 
@@ -416,9 +548,18 @@ def collect_bulk(start_date, end_date):
             collect_short_balance(conn, date_str)
             time.sleep(1)
             collect_investor_trading(conn, date_str)
+            time.sleep(1)
+            collect_valuation(conn, date_str)
             conn.close()
             time.sleep(1)  # API 부하 방지
         current += timedelta(days=1)
+
+    # 벌크 수집 마지막에 업종 분류 1회 업데이트
+    conn = get_connection()
+    conn.autocommit = False
+    print("\n업종 분류 업데이트...")
+    collect_sector(conn, end_date)
+    conn.close()
 
     print("벌크 수집 완료!")
 
