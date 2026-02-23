@@ -99,9 +99,9 @@ export function AdBanner({
   if (!kakaoUnitId && !adsenseSlot) return null;
 
   const sizeMap = {
-    header: { width: 728, height: 90 },
-    content: { width: 320, height: 100 },
-    footer: { width: 728, height: 90 },
+    header: { width: 300, height: 250 },
+    content: { width: 300, height: 250 },
+    footer: { width: 300, height: 250 },
   };
 
   const size = sizeMap[position];
