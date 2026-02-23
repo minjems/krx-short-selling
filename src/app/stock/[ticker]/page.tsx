@@ -23,10 +23,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: `${stock.name}(${ticker}) 공매도 현황`,
-    description: `${stock.name}(${ticker}) ${stock.market} 공매도 비중, 잔고비율 추이 차트 및 상세 데이터`,
+    description: `${stock.name}(${ticker}) ${stock.market} 공매도 비중, 잔고비율, 투자자별 수급 추이 차트 및 상세 데이터`,
     openGraph: {
-      title: `${stock.name}(${ticker}) 공매도 현황 - KRX 공매도`,
-      description: `${stock.name} 공매도 비중·잔고비율 추이 차트`,
+      title: `${stock.name}(${ticker}) 공매도·수급 현황 - KRX 공매도·수급`,
+      description: `${stock.name} 공매도 비중·잔고비율·투자자 수급 추이 차트`,
     },
   };
 }
@@ -56,6 +56,14 @@ async function getStockData(ticker: string) {
     .eq("ticker", ticker)
     .order("trade_date", { ascending: true })
     .limit(90);
+
+  // 투자자별 매매동향 (최근 90일 x 3 투자자)
+  const { data: investorData } = await supabase
+    .from("investor_trading")
+    .select("trade_date, investor_type, net_value, net_volume, buy_value, sell_value")
+    .eq("ticker", ticker)
+    .order("trade_date", { ascending: true })
+    .limit(270);
 
   const latestVolume = volumeData && volumeData.length > 0
     ? volumeData[volumeData.length - 1]
@@ -89,6 +97,18 @@ async function getStockData(ticker: string) {
       balanceAmount: row.balance_amount,
       balanceRatio: row.balance_ratio,
     })),
+    investorHistory: (() => {
+      const byType: Record<string, { date: string; netValue: number }[]> = {
+        "8000": [], "9000": [], "7050": [],
+      };
+      for (const row of (investorData || [])) {
+        byType[row.investor_type]?.push({
+          date: row.trade_date,
+          netValue: row.net_value,
+        });
+      }
+      return byType;
+    })(),
   };
 }
 
@@ -102,7 +122,7 @@ export default async function StockPage({ params }: PageProps) {
         <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-10">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">KRX 공매도</h1>
+              <h1 className="text-xl font-bold">KRX 공매도·수급</h1>
             </Link>
           </div>
         </header>
@@ -122,10 +142,11 @@ export default async function StockPage({ params }: PageProps) {
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">KRX 공매도</h1>
+            <h1 className="text-xl font-bold">KRX 공매도·수급</h1>
           </Link>
           <nav className="flex gap-4 text-sm text-zinc-400">
-            <Link href="/" className="hover:text-white transition-colors">랭킹</Link>
+            <Link href="/" className="hover:text-white transition-colors">공매도</Link>
+            <Link href="/investor" className="hover:text-white transition-colors">수급</Link>
             <Link href="/screener" className="hover:text-white transition-colors">종목 검색</Link>
           </nav>
         </div>
@@ -135,7 +156,7 @@ export default async function StockPage({ params }: PageProps) {
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="text-sm text-zinc-500 mb-6">
-          <Link href="/" className="hover:text-zinc-300 transition-colors">랭킹</Link>
+          <Link href="/" className="hover:text-zinc-300 transition-colors">공매도</Link>
           <span className="mx-2">/</span>
           <span className="text-zinc-300">{data.stock.name}</span>
         </div>
@@ -164,6 +185,7 @@ export default async function StockPage({ params }: PageProps) {
           summary={data.summary}
           volumeHistory={data.volumeHistory}
           balanceHistory={data.balanceHistory}
+          investorHistory={data.investorHistory}
         />
       </main>
 
@@ -171,7 +193,7 @@ export default async function StockPage({ params }: PageProps) {
       <footer className="border-t border-zinc-800 mt-16">
         <div className="max-w-6xl mx-auto px-4 py-6 text-xs text-zinc-500 space-y-2">
           <p>데이터 출처: 한국거래소(KRX) | 본 사이트는 투자 권유 목적이 아닙니다.</p>
-          <p>공매도 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>
+          <p>공매도 및 수급 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>
         </div>
       </footer>
     </div>

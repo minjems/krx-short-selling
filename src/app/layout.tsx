@@ -14,30 +14,34 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "KRX 공매도 - 한국 주식시장 공매도 데이터",
-    template: "%s - KRX 공매도",
+    default: "KRX 공매도·수급 - 한국 주식시장 공매도·수급 데이터",
+    template: "%s - KRX 공매도·수급",
   },
   description:
-    "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율을 실시간 추적하는 대시보드. 종목별 공매도 차트, 랭킹, 종목 검색 제공.",
+    "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율, 투자자별 수급동향을 추적하는 대시보드. 외국인·기관·개인 순매수/순매도 랭킹, 종목별 차트 제공.",
   keywords: [
     "공매도",
+    "수급",
     "KRX",
     "한국거래소",
     "공매도 비중",
     "공매도 잔고",
+    "외국인 순매수",
+    "기관 순매수",
+    "투자자별 매매동향",
     "코스피",
     "코스닥",
     "주식",
-    "공매도 데이터",
     "공매도 랭킹",
+    "수급 랭킹",
   ],
   openGraph: {
-    title: "KRX 공매도 - 한국 주식시장 공매도 데이터",
+    title: "KRX 공매도·수급 - 한국 주식시장 공매도·수급 데이터",
     description:
-      "코스피·코스닥 공매도 비중 상위 종목 랭킹, 종목별 공매도 추이 차트, 종목 검색",
+      "코스피·코스닥 공매도 비중 랭킹, 외국인·기관·개인 수급 랭킹, 종목별 차트",
     type: "website",
     locale: "ko_KR",
-    siteName: "KRX 공매도",
+    siteName: "KRX 공매도·수급",
   },
   robots: {
     index: true,

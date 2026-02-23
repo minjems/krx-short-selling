@@ -110,10 +110,11 @@ export default async function ScreenerPage() {
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <h1 className="text-xl font-bold">KRX 공매도</h1>
+            <h1 className="text-xl font-bold">KRX 공매도·수급</h1>
           </Link>
           <nav className="flex gap-4 text-sm text-zinc-400">
-            <Link href="/" className="hover:text-white transition-colors">랭킹</Link>
+            <Link href="/" className="hover:text-white transition-colors">공매도</Link>
+            <Link href="/investor" className="hover:text-white transition-colors">수급</Link>
             <Link href="/screener" className="text-white">종목 검색</Link>
           </nav>
         </div>
@@ -145,7 +146,7 @@ export default async function ScreenerPage() {
       <footer className="border-t border-zinc-800 mt-16">
         <div className="max-w-6xl mx-auto px-4 py-6 text-xs text-zinc-500 space-y-2">
           <p>데이터 출처: 한국거래소(KRX) | 본 사이트는 투자 권유 목적이 아닙니다.</p>
-          <p>공매도 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>
+          <p>공매도 및 수급 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>
         </div>
       </footer>
     </div>

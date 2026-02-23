@@ -2,6 +2,7 @@
 
 import { ShortRatioChart } from "@/components/ShortRatioChart";
 import { BalanceChart } from "@/components/BalanceChart";
+import { InvestorFlowChart } from "@/components/InvestorFlowChart";
 import { AdBanner } from "@/components/AdBanner";
 
 type Summary = {
@@ -41,14 +42,18 @@ function ratioColor(ratio: number): string {
   return "text-zinc-100";
 }
 
+type InvestorFlowData = Record<string, { date: string; netValue: number }[]>;
+
 export function StockDetailClient({
   summary,
   volumeHistory,
   balanceHistory,
+  investorHistory,
 }: {
   summary: Summary;
   volumeHistory: VolumeItem[];
   balanceHistory: BalanceItem[];
+  investorHistory?: InvestorFlowData;
 }) {
   return (
     <>
@@ -116,6 +121,14 @@ export function StockDetailClient({
           <div className="text-center py-10 text-zinc-500">잔고 데이터가 없습니다.</div>
         )}
       </div>
+
+      {/* Investor Flow Chart */}
+      {investorHistory && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+          <h3 className="text-base font-semibold mb-4">투자자별 수급 추이</h3>
+          <InvestorFlowChart data={investorHistory} />
+        </div>
+      )}
     </>
   );
 }

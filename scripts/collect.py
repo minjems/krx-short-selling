@@ -1,5 +1,5 @@
 """
-KRX 공매도 데이터 수집 스크립트
+KRX 공매도 + 투자자별 수급 데이터 수집 스크립트
 data.krx.co.kr 직접 스크래핑으로 데이터를 가져와서 Supabase에 저장
 """
 import os
@@ -29,6 +29,9 @@ KRX_HEADERS = {
 # 시장 코드 매핑
 MARKET_VOLUME_CODE = {"KOSPI": "STK", "KOSDAQ": "KSQ"}
 MARKET_BALANCE_CODE = {"KOSPI": "1", "KOSDAQ": "2"}
+
+# 투자자 유형 코드
+INVESTOR_TYPES = {"8000": "개인", "9000": "외국인", "7050": "기관합계"}
 
 
 def krx_post(params):
@@ -255,6 +258,86 @@ def collect_short_balance(conn, date_str):
     cur.close()
 
 
+def krx_post_output(params):
+    """KRX API POST 요청 (output 키 사용 - 투자자별 매매동향용)"""
+    res = requests.post(KRX_URL, headers=KRX_HEADERS, data=params, timeout=30)
+    res.raise_for_status()
+    return res.json().get("output", [])
+
+
+def collect_investor_trading(conn, date_str):
+    """특정 날짜의 투자자별 매매동향 수집"""
+    cur = conn.cursor()
+
+    for market in ["KOSPI", "KOSDAQ"]:
+        mkt_code = MARKET_VOLUME_CODE[market]
+
+        for inv_code, inv_name in INVESTOR_TYPES.items():
+            try:
+                items = krx_post_output({
+                    "bld": "dbms/MDC/STAT/standard/MDCSTAT02401",
+                    "strtDd": date_str,
+                    "endDd": date_str,
+                    "mktId": mkt_code,
+                    "invstTpCd": inv_code,
+                })
+
+                if not items:
+                    print(f"  [{market}] {date_str} {inv_name} 매매동향 데이터 없음")
+                    continue
+
+                # 종목 등록 (ISU_SRT_CD 사용)
+                stock_rows = [(item["ISU_SRT_CD"], item.get("ISU_NM", ""), market)
+                              for item in items if item.get("ISU_SRT_CD")]
+                ensure_stocks_exist(conn, stock_rows, market)
+
+                rows = []
+                for item in items:
+                    ticker = item.get("ISU_SRT_CD", "")
+                    if not ticker:
+                        continue
+                    rows.append((
+                        format_date(date_str),
+                        ticker,
+                        inv_code,
+                        parse_int(item.get("ASK_TRDVOL", "0")),
+                        parse_int(item.get("BID_TRDVOL", "0")),
+                        parse_int(item.get("NETBID_TRDVOL", "0")),
+                        parse_int(item.get("ASK_TRDVAL", "0")),
+                        parse_int(item.get("BID_TRDVAL", "0")),
+                        parse_int(item.get("NETBID_TRDVAL", "0")),
+                    ))
+
+                if rows:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO investor_trading
+                          (trade_date, ticker, investor_type, sell_volume, buy_volume,
+                           net_volume, sell_value, buy_value, net_value)
+                        VALUES %s
+                        ON CONFLICT (trade_date, ticker, investor_type) DO UPDATE SET
+                            sell_volume = EXCLUDED.sell_volume,
+                            buy_volume = EXCLUDED.buy_volume,
+                            net_volume = EXCLUDED.net_volume,
+                            sell_value = EXCLUDED.sell_value,
+                            buy_value = EXCLUDED.buy_value,
+                            net_value = EXCLUDED.net_value
+                        """,
+                        rows
+                    )
+                    conn.commit()
+                    print(f"  [{market}] {date_str} {inv_name} 매매동향 {len(rows)}건 저장")
+
+                time.sleep(1)
+
+            except Exception as e:
+                print(f"  [{market}] {date_str} {inv_name} 매매동향 수집 실패: {e}")
+                conn.rollback()
+
+    cur.close()
+
+
 def collect_daily(date_str=None):
     """하루치 데이터 수집"""
     if date_str is None:
@@ -281,6 +364,11 @@ def collect_daily(date_str=None):
         # 공매도 잔고
         print(f"공매도 잔고 수집 ({date_str})...")
         collect_short_balance(conn, date_str)
+        time.sleep(1)
+
+        # 투자자별 매매동향
+        print(f"투자자별 매매동향 수집 ({date_str})...")
+        collect_investor_trading(conn, date_str)
 
         print(f"=== {date_str} 수집 완료 ===\n")
 
@@ -326,6 +414,8 @@ def collect_bulk(start_date, end_date):
             collect_short_volume(conn, date_str, price_maps)
             time.sleep(1)
             collect_short_balance(conn, date_str)
+            time.sleep(1)
+            collect_investor_trading(conn, date_str)
             conn.close()
             time.sleep(1)  # API 부하 방지
         current += timedelta(days=1)
