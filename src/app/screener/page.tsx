@@ -22,15 +22,38 @@ async function getScreenerData() {
 
   const tradeDate = latest.trade_date;
 
-  // 공매도 상위 100종목
-  const { data: volumeData } = await supabase
-    .from("short_volume")
-    .select("ticker, total_volume, short_volume, short_ratio, close_price, stocks(name, market)")
-    .eq("trade_date", tradeDate)
-    .gt("short_ratio", 0)
-    .gt("total_volume", 0)
-    .order("short_ratio", { ascending: false })
-    .limit(200);
+  // 전체 종목 공매도 거래량 (페이징으로 전부 가져오기)
+  const PAGE_SIZE = 1000;
+  type VolumeRow = {
+    ticker: string;
+    total_volume: number;
+    short_volume: number;
+    short_ratio: number;
+    close_price: number;
+    stocks: { name: string; market: string } | null;
+  };
+  const allVolume: VolumeRow[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data } = await supabase
+      .from("short_volume")
+      .select("ticker, total_volume, short_volume, short_ratio, close_price, stocks(name, market)")
+      .eq("trade_date", tradeDate)
+      .gt("total_volume", 0)
+      .order("short_ratio", { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (!data || data.length === 0) break;
+    for (const row of data) {
+      allVolume.push({
+        ...row,
+        stocks: row.stocks as unknown as { name: string; market: string } | null,
+      });
+    }
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
 
   // 최신 잔고일
   const { data: latestBalance } = await supabase
@@ -41,39 +64,39 @@ async function getScreenerData() {
     .single();
 
   const balanceDate = latestBalance?.trade_date;
-  let balanceMap: Record<string, number> = {};
+  const balanceMap: Record<string, number> = {};
 
-  if (balanceDate && volumeData) {
-    const tickers = volumeData.map((r) => r.ticker);
-    const { data: balanceData } = await supabase
-      .from("short_balance")
-      .select("ticker, balance_ratio")
-      .eq("trade_date", balanceDate)
-      .in("ticker", tickers);
+  if (balanceDate) {
+    let bOffset = 0;
+    while (true) {
+      const { data: balanceData } = await supabase
+        .from("short_balance")
+        .select("ticker, balance_ratio")
+        .eq("trade_date", balanceDate)
+        .range(bOffset, bOffset + PAGE_SIZE - 1);
 
-    if (balanceData) {
+      if (!balanceData || balanceData.length === 0) break;
       for (const b of balanceData) {
         balanceMap[b.ticker] = b.balance_ratio;
       }
+      if (balanceData.length < PAGE_SIZE) break;
+      bOffset += PAGE_SIZE;
     }
   }
 
   return {
     tradeDate,
     balanceDate: balanceDate || null,
-    data: (volumeData || []).map((row) => {
-      const stockInfo = row.stocks as unknown as { name: string; market: string } | null;
-      return {
-        ticker: row.ticker,
-        name: stockInfo?.name || "",
-        market: stockInfo?.market || "",
-        shortVolume: row.short_volume,
-        totalVolume: row.total_volume,
-        shortRatio: row.short_ratio,
-        closePrice: row.close_price,
-        balanceRatio: balanceMap[row.ticker] ?? null,
-      };
-    }),
+    data: allVolume.map((row) => ({
+      ticker: row.ticker,
+      name: row.stocks?.name || "",
+      market: row.stocks?.market || "",
+      shortVolume: row.short_volume,
+      totalVolume: row.total_volume,
+      shortRatio: row.short_ratio,
+      closePrice: row.close_price,
+      balanceRatio: balanceMap[row.ticker] ?? null,
+    })),
   };
 }
 

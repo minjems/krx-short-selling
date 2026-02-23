@@ -34,8 +34,11 @@ export function ScreenerClient({
   const [sortAsc, setSortAsc] = useState(false);
   const [search, setSearch] = useState("");
 
+  const hasActiveFilter = search.length > 0 || market !== "ALL" || minShortRatio > 0 || maxShortRatio < 100 || minBalanceRatio > 0 || maxBalanceRatio < 100;
+  const DISPLAY_LIMIT = 100;
+
   const filtered = useMemo(() => {
-    return data
+    const result = data
       .filter((item) => {
         if (market !== "ALL" && item.market !== market) return false;
         if (item.shortRatio < minShortRatio || item.shortRatio > maxShortRatio) return false;
@@ -57,7 +60,11 @@ export function ScreenerClient({
         const diff = (aVal as number) - (bVal as number);
         return sortAsc ? diff : -diff;
       });
-  }, [data, market, minShortRatio, maxShortRatio, minBalanceRatio, maxBalanceRatio, sortKey, sortAsc, search]);
+
+    // 필터/검색이 없으면 상위 N개만 표시
+    if (!hasActiveFilter) return result.slice(0, DISPLAY_LIMIT);
+    return result;
+  }, [data, market, minShortRatio, maxShortRatio, minBalanceRatio, maxBalanceRatio, sortKey, sortAsc, search, hasActiveFilter]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -187,7 +194,10 @@ export function ScreenerClient({
 
       {/* Result count */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-zinc-500">{filtered.length}종목</span>
+        <span className="text-sm text-zinc-500">
+          {filtered.length}종목
+          {!hasActiveFilter && ` (전체 ${data.length}종목 중 상위 ${DISPLAY_LIMIT}개 표시 - 검색하면 전체에서 찾습니다)`}
+        </span>
       </div>
 
       {/* Table */}
