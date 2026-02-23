@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import { RankingTable } from "@/components/RankingTable";
 
 export const dynamic = "force-dynamic";
@@ -13,23 +14,46 @@ type RankingItem = {
   closePrice: number;
 };
 
-type RankingResponse = {
-  date: string;
-  market: string;
-  count: number;
-  data: RankingItem[];
-};
-
-async function getRanking(): Promise<RankingResponse | null> {
+async function getRanking(): Promise<{ date: string; data: RankingItem[] } | null> {
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/ranking?limit=50`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return res.json();
+    // 최신 거래일 조회
+    const { data: latest } = await supabase
+      .from("short_volume")
+      .select("trade_date")
+      .order("trade_date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!latest?.trade_date) return null;
+
+    const tradeDate = latest.trade_date;
+
+    // 공매도 비중 상위 종목 조회
+    const { data, error } = await supabase
+      .from("short_volume")
+      .select("trade_date, ticker, total_volume, short_volume, short_ratio, close_price, stocks(name, market)")
+      .eq("trade_date", tradeDate)
+      .gt("short_ratio", 0)
+      .order("short_ratio", { ascending: false })
+      .limit(50);
+
+    if (error || !data) return null;
+
+    return {
+      date: tradeDate,
+      data: data.map((row) => {
+        const stockInfo = row.stocks as unknown as { name: string; market: string } | null;
+        return {
+          ticker: row.ticker,
+          name: stockInfo?.name || "",
+          market: stockInfo?.market || "",
+          shortVolume: row.short_volume,
+          totalVolume: row.total_volume,
+          shortRatio: row.short_ratio,
+          closePrice: row.close_price,
+        };
+      }),
+    };
   } catch {
     return null;
   }
