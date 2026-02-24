@@ -100,33 +100,50 @@ async function getValuationData(): Promise<{
       // RPC 없거나 테이블 없으면 무시 (graceful degradation)
     }
 
+    // 거래정지 종목 필터링: 같은 날짜에 short_volume 데이터가 있는 종목만 포함
+    const tradedTickers = new Set<string>();
+    let svFrom = 0;
+    while (true) {
+      const { data: svPage, error: svError } = await supabase
+        .from("short_volume")
+        .select("ticker")
+        .eq("trade_date", tradeDate)
+        .range(svFrom, svFrom + PAGE_SIZE - 1);
+      if (svError || !svPage || svPage.length === 0) break;
+      for (const row of svPage) tradedTickers.add(row.ticker);
+      if (svPage.length < PAGE_SIZE) break;
+      svFrom += PAGE_SIZE;
+    }
+
     return {
       date: tradeDate,
-      data: allRows.map((row) => {
-        const stock = row.stocks as unknown as {
-          name: string;
-          market: string;
-          sector: string | null;
-        } | null;
-        const fin = financialMap.get(row.ticker);
-        return {
-          ticker: row.ticker,
-          name: stock?.name || "",
-          market: stock?.market || "",
-          sector: stock?.sector || null,
-          closePrice: row.close_price,
-          per: row.per,
-          pbr: row.pbr,
-          eps: row.eps,
-          bps: row.bps,
-          dvdYld: row.dvd_yld,
-          roe: fin?.roe ?? null,
-          debtRatio: fin?.debt_ratio ?? null,
-          operatingMargin: fin?.operating_margin ?? null,
-          revenueGrowth: fin?.revenue_growth ?? null,
-          cashFromOps: fin?.cash_from_operations ?? null,
-        };
-      }),
+      data: allRows
+        .filter((row) => tradedTickers.size === 0 || tradedTickers.has(row.ticker))
+        .map((row) => {
+          const stock = row.stocks as unknown as {
+            name: string;
+            market: string;
+            sector: string | null;
+          } | null;
+          const fin = financialMap.get(row.ticker);
+          return {
+            ticker: row.ticker,
+            name: stock?.name || "",
+            market: stock?.market || "",
+            sector: stock?.sector || null,
+            closePrice: row.close_price,
+            per: row.per,
+            pbr: row.pbr,
+            eps: row.eps,
+            bps: row.bps,
+            dvdYld: row.dvd_yld,
+            roe: fin?.roe ?? null,
+            debtRatio: fin?.debt_ratio ?? null,
+            operatingMargin: fin?.operating_margin ?? null,
+            revenueGrowth: fin?.revenue_growth ?? null,
+            cashFromOps: fin?.cash_from_operations ?? null,
+          };
+        }),
     };
   } catch {
     return null;
