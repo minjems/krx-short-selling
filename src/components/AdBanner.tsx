@@ -67,7 +67,7 @@ export function GoogleAdSense({
     }
   }, []);
 
-  const adClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID;
+  const adClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim();
   if (!adClient || !adSlot) return null;
 
   return (
@@ -84,7 +84,8 @@ export function GoogleAdSense({
   );
 }
 
-// 통합 광고 배너 - 설정된 것만 표시
+// 통합 광고 배너 - 페이지당 카카오 애드핏은 1회만 (같은 unit ID 중복 불가)
+// header → 카카오 애드핏 우선, footer/content → 애드센스 우선
 export function AdBanner({
   position = "content",
   className = "",
@@ -92,8 +93,8 @@ export function AdBanner({
   position?: "header" | "content" | "footer";
   className?: string;
 }) {
-  const kakaoUnitId = process.env.NEXT_PUBLIC_KAKAO_ADFIT_UNIT_ID;
-  const adsenseSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT_ID;
+  const kakaoUnitId = process.env.NEXT_PUBLIC_KAKAO_ADFIT_UNIT_ID?.trim();
+  const adsenseSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT_ID?.trim();
 
   // 둘 다 설정 안 되어 있으면 렌더링하지 않음
   if (!kakaoUnitId && !adsenseSlot) return null;
@@ -106,10 +107,13 @@ export function AdBanner({
 
   const size = sizeMap[position];
 
+  // header 위치에만 카카오 애드핏 (페이지당 1개), 나머지는 애드센스
+  const useKakao = position === "header" && !!kakaoUnitId;
+
   return (
     <div className={`flex justify-center ${className}`}>
-      {kakaoUnitId ? (
-        <KakaoAdFit unitId={kakaoUnitId} width={size.width} height={size.height} />
+      {useKakao ? (
+        <KakaoAdFit unitId={kakaoUnitId!} width={size.width} height={size.height} />
       ) : adsenseSlot ? (
         <GoogleAdSense adSlot={adsenseSlot} />
       ) : null}
