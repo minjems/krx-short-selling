@@ -57,3 +57,7 @@
 - DART 재무제표 전체 수집은 아직 미실행 (삼성전자만 테스트 완료). GitHub Actions에서 자동 실행되거나 수동 trigger 필요.
 - collect_dart.py의 보고서 기간 로직: 1~3월→전전년 사업보고서, 4~5월→전년 사업보고서, 6~8월→당해 1분기, 9~11월→당해 반기, 12월→당해 3분기
 - corp_codes.json에 ~3,942개 종목 매핑. 새 상장 종목은 DART에서 업데이트 필요.
+
+## TODO (다음 세션)
+- `.github/workflows/collect_dart.yml` push 필요 — `gh` 토큰에 `workflow` 스코프 추가 필요 (`gh auth refresh -h github.com -s workflow` 후 device flow 완료). 파일은 로컬에 있고 커밋만 안 된 상태.
+- DART 재무제표 전체 수집 미실행 (삼성전자만 테스트 완료). GitHub Actions 또는 수동 실행 필요.
