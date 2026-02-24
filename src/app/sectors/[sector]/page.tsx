@@ -112,7 +112,7 @@ async function getAllSectors(): Promise<string[]> {
 }
 
 function formatNumber(n: number): string {
-  return n.toLocaleString("ko-KR");
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 function ratioColor(ratio: number): string {
