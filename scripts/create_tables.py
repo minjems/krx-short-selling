@@ -88,6 +88,34 @@ CREATE INDEX IF NOT EXISTS idx_valuation_ticker ON stock_valuation(ticker);
 ALTER TABLE stock_valuation ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow anonymous read valuation" ON stock_valuation;
 CREATE POLICY "Allow anonymous read valuation" ON stock_valuation FOR SELECT USING (true);
+
+-- 6. 재무제표 테이블 (DART 연동)
+CREATE TABLE IF NOT EXISTS stock_financial (
+  ticker            VARCHAR(10) NOT NULL REFERENCES stocks(ticker),
+  fiscal_year       INTEGER NOT NULL,
+  reprt_code        VARCHAR(5) NOT NULL,
+  revenue           BIGINT,
+  operating_income  BIGINT,
+  net_income        BIGINT,
+  total_assets      BIGINT,
+  total_liabilities BIGINT,
+  total_equity      BIGINT,
+  cash_from_operations BIGINT,
+  roe               NUMERIC(8,2),
+  debt_ratio        NUMERIC(8,2),
+  operating_margin  NUMERIC(8,2),
+  revenue_growth    NUMERIC(8,2),
+  fetched_at        TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (ticker, fiscal_year, reprt_code)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sf_ticker ON stock_financial(ticker);
+CREATE INDEX IF NOT EXISTS idx_sf_year ON stock_financial(fiscal_year DESC, reprt_code DESC);
+
+-- RLS for stock_financial
+ALTER TABLE stock_financial ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow anonymous read financial" ON stock_financial;
+CREATE POLICY "Allow anonymous read financial" ON stock_financial FOR SELECT USING (true);
 """
 
 def main():

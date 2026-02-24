@@ -32,10 +32,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 async function getStockData(ticker: string) {
-  // 종목 기본 정보
+  // 종목 기본 정보 (sector 포함)
   const { data: stock } = await supabase
     .from("stocks")
-    .select("ticker, name, market")
+    .select("ticker, name, market, sector")
     .eq("ticker", ticker)
     .single();
 
@@ -75,6 +75,72 @@ async function getStockData(ticker: string) {
     .limit(1)
     .single();
 
+  // 업종 평균 PER/PBR (같은 업종, 같은 거래일)
+  let sectorAvg: { avgPer: number; avgPbr: number; sector: string } | null = null;
+  if (stock.sector && valuationData) {
+    // 같은 업종 종목들의 밸류에이션 조회
+    const { data: sectorRows } = await supabase
+      .from("stock_valuation")
+      .select("per, pbr, stocks!inner(sector)")
+      .eq("trade_date", valuationData.trade_date)
+      .eq("stocks.sector", stock.sector);
+
+    if (sectorRows && sectorRows.length >= 3) {
+      const validPers = sectorRows
+        .map((r) => r.per)
+        .filter((p): p is number => p !== null && p > 0 && p < 200);
+      const validPbrs = sectorRows
+        .map((r) => r.pbr)
+        .filter((p): p is number => p !== null && p > 0 && p < 20);
+
+      if (validPers.length >= 3 || validPbrs.length >= 3) {
+        sectorAvg = {
+          avgPer:
+            validPers.length >= 3
+              ? validPers.reduce((a, c) => a + c, 0) / validPers.length
+              : 0,
+          avgPbr:
+            validPbrs.length >= 3
+              ? validPbrs.reduce((a, c) => a + c, 0) / validPbrs.length
+              : 0,
+          sector: stock.sector,
+        };
+      }
+    }
+  }
+
+  // 재무제표 데이터 (최신 1건)
+  let financialData: {
+    roe: number | null;
+    debtRatio: number | null;
+    operatingMargin: number | null;
+    revenueGrowth: number | null;
+    cashFromOps: number | null;
+  } | null = null;
+
+  try {
+    const { data: finRow } = await supabase
+      .from("stock_financial")
+      .select("roe, debt_ratio, operating_margin, revenue_growth, cash_from_operations")
+      .eq("ticker", ticker)
+      .order("fiscal_year", { ascending: false })
+      .order("reprt_code", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (finRow) {
+      financialData = {
+        roe: finRow.roe,
+        debtRatio: finRow.debt_ratio,
+        operatingMargin: finRow.operating_margin,
+        revenueGrowth: finRow.revenue_growth,
+        cashFromOps: finRow.cash_from_operations,
+      };
+    }
+  } catch {
+    // stock_financial 테이블 없으면 무시
+  }
+
   const latestVolume = volumeData && volumeData.length > 0
     ? volumeData[volumeData.length - 1]
     : null;
@@ -83,7 +149,7 @@ async function getStockData(ticker: string) {
     : null;
 
   return {
-    stock: { ticker: stock.ticker, name: stock.name, market: stock.market },
+    stock: { ticker: stock.ticker, name: stock.name, market: stock.market, sector: stock.sector },
     summary: {
       closePrice: latestVolume?.close_price || 0,
       shortRatio: latestVolume?.short_ratio || 0,
@@ -130,6 +196,8 @@ async function getStockData(ticker: string) {
           dvdYld: valuationData.dvd_yld,
         }
       : null,
+    sectorAvg,
+    financialData,
   };
 }
 
@@ -168,7 +236,7 @@ export default async function StockPage({ params }: PageProps) {
           <nav className="flex gap-4 text-sm text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">공매도</Link>
             <Link href="/investor" className="hover:text-white transition-colors">수급</Link>
-            <Link href="/valuation" className="hover:text-white transition-colors">밸류에이션</Link>
+            <Link href="/valuation" className="hover:text-white transition-colors">저·고평가</Link>
             <Link href="/screener" className="hover:text-white transition-colors">종목 검색</Link>
           </nav>
         </div>
@@ -209,13 +277,16 @@ export default async function StockPage({ params }: PageProps) {
           balanceHistory={data.balanceHistory}
           investorHistory={data.investorHistory}
           valuation={data.valuation}
+          sectorAvg={data.sectorAvg}
+          financialData={data.financialData}
+          sector={data.stock.sector}
         />
       </main>
 
       {/* Footer */}
       <footer className="border-t border-zinc-800 mt-16">
         <div className="max-w-6xl mx-auto px-4 py-6 text-xs text-zinc-500 space-y-2">
-          <p>데이터 출처: 한국거래소(KRX) | 본 사이트는 투자 권유 목적이 아닙니다.</p>
+          <p>데이터 출처: 한국거래소(KRX), DART | 본 사이트는 투자 권유 목적이 아닙니다.</p>
           <p>공매도 및 수급 데이터는 참고용이며, 투자 판단의 근거로 사용하지 마십시오. 데이터의 정확성을 보장하지 않습니다.</p>
         </div>
       </footer>

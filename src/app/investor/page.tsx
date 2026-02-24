@@ -78,7 +78,7 @@ export default async function InvestorPage() {
               href="/valuation"
               className="hover:text-white transition-colors"
             >
-              밸류에이션
+              저·고평가
             </Link>
             <Link
               href="/screener"

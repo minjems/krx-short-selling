@@ -6,9 +6,9 @@ import { AdBanner } from "@/components/AdBanner";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "밸류에이션 랭킹 - KRX 공매도·수급",
+  title: "저·고평가 분석 - KRX 공매도·수급",
   description:
-    "코스피·코스닥 전종목 PER, PBR, 배당수익률 기반 저평가·고평가 랭킹. 복합점수로 저평가 종목을 한눈에 확인하세요.",
+    "코스피·코스닥 전종목 업종 평균 PER·PBR 기반 품질 조정 적정가 분석. 재무 건전성(ROE·영업이익률·부채비율·매출성장률) 반영.",
 };
 
 export type ValuationItem = {
@@ -22,6 +22,11 @@ export type ValuationItem = {
   eps: number | null;
   bps: number | null;
   dvdYld: number | null;
+  roe: number | null;
+  debtRatio: number | null;
+  operatingMargin: number | null;
+  revenueGrowth: number | null;
+  cashFromOps: number | null;
 };
 
 async function getValuationData(): Promise<{
@@ -73,6 +78,28 @@ async function getValuationData(): Promise<{
       from += PAGE_SIZE;
     }
 
+    // 최신 재무제표 데이터 조회
+    type FinRow = {
+      ticker: string;
+      roe: number | null;
+      debt_ratio: number | null;
+      operating_margin: number | null;
+      revenue_growth: number | null;
+      cash_from_operations: number | null;
+    };
+
+    let financialMap = new Map<string, FinRow>();
+    try {
+      const { data: finData } = await supabase.rpc("get_latest_financials");
+      if (finData) {
+        for (const row of finData as FinRow[]) {
+          financialMap.set(row.ticker, row);
+        }
+      }
+    } catch {
+      // RPC 없거나 테이블 없으면 무시 (graceful degradation)
+    }
+
     return {
       date: tradeDate,
       data: allRows.map((row) => {
@@ -81,6 +108,7 @@ async function getValuationData(): Promise<{
           market: string;
           sector: string | null;
         } | null;
+        const fin = financialMap.get(row.ticker);
         return {
           ticker: row.ticker,
           name: stock?.name || "",
@@ -92,6 +120,11 @@ async function getValuationData(): Promise<{
           eps: row.eps,
           bps: row.bps,
           dvdYld: row.dvd_yld,
+          roe: fin?.roe ?? null,
+          debtRatio: fin?.debt_ratio ?? null,
+          operatingMargin: fin?.operating_margin ?? null,
+          revenueGrowth: fin?.revenue_growth ?? null,
+          cashFromOps: fin?.cash_from_operations ?? null,
         };
       }),
     };
@@ -122,7 +155,7 @@ export default async function ValuationPage() {
               수급
             </Link>
             <Link href="/valuation" className="text-white">
-              밸류에이션
+              저·고평가
             </Link>
             <Link
               href="/screener"
@@ -138,7 +171,7 @@ export default async function ValuationPage() {
       <main className="max-w-6xl mx-auto px-4 py-8">
         <AdBanner position="header" className="mb-6" />
 
-        <h2 className="text-2xl font-bold mb-6">밸류에이션 랭킹</h2>
+        <h2 className="text-2xl font-bold mb-6">저·고평가 분석</h2>
 
         {result ? (
           <ValuationClient data={result.data} tradeDate={result.date} />
@@ -158,7 +191,7 @@ export default async function ValuationPage() {
       <footer className="border-t border-zinc-800 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-6 text-xs text-zinc-500 space-y-2">
           <p>
-            데이터 출처: 한국거래소(KRX) | 본 사이트는 투자 권유 목적이
+            데이터 출처: 한국거래소(KRX), DART | 본 사이트는 투자 권유 목적이
             아닙니다.
           </p>
           <p>

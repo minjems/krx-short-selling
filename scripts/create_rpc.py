@@ -58,6 +58,23 @@ BEGIN
   LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 최신 재무제표 데이터 조회 RPC
+CREATE OR REPLACE FUNCTION get_latest_financials()
+RETURNS TABLE (
+  ticker VARCHAR(10),
+  roe NUMERIC(8,2),
+  debt_ratio NUMERIC(8,2),
+  operating_margin NUMERIC(8,2),
+  revenue_growth NUMERIC(8,2),
+  cash_from_operations BIGINT
+) AS $$
+  SELECT DISTINCT ON (sf.ticker)
+    sf.ticker, sf.roe, sf.debt_ratio, sf.operating_margin,
+    sf.revenue_growth, sf.cash_from_operations
+  FROM stock_financial sf
+  ORDER BY sf.ticker, sf.fiscal_year DESC, sf.reprt_code DESC;
+$$ LANGUAGE sql STABLE;
 """
 
 def main():
