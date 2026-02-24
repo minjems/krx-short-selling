@@ -76,6 +76,25 @@ export default function RootLayout({
             crossOrigin="anonymous"
           />
         )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "KRX 공매도·수급",
+              url: "https://krx-short-selling.vercel.app",
+              description:
+                "한국거래소(KRX) 코스피·코스닥 공매도 비중, 잔고비율, 투자자별 수급동향 대시보드",
+              inLanguage: "ko",
+              publisher: {
+                "@type": "Organization",
+                name: "KRX 공매도·수급",
+                url: "https://krx-short-selling.vercel.app",
+              },
+            }),
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

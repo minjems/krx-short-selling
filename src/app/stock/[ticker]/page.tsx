@@ -402,8 +402,85 @@ export default async function StockPage({ params }: PageProps) {
     );
   }
 
+  // Dataset 구조화 데이터 (JSON-LD)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `${data.stock.name}(${ticker}) 공매도·수급 데이터`,
+    description: `${data.stock.name} ${data.stock.market} 공매도 비중, 잔고비율, 투자자별 수급 추이 데이터`,
+    url: `https://krx-short-selling.vercel.app/stock/${ticker}`,
+    keywords: [
+      `${data.stock.name} 공매도`,
+      `${ticker} 공매도`,
+      `${data.stock.name} 수급`,
+      "공매도 비중",
+      "공매도 잔고",
+    ],
+    creator: {
+      "@type": "Organization",
+      name: "KRX 공매도·수급",
+      url: "https://krx-short-selling.vercel.app",
+    },
+    distribution: {
+      "@type": "DataDownload",
+      encodingFormat: "text/html",
+      contentUrl: `https://krx-short-selling.vercel.app/stock/${ticker}`,
+    },
+    temporalCoverage: data.summary.volumeDate
+      ? `../${data.summary.volumeDate}`
+      : undefined,
+    isAccessibleForFree: true,
+    license: "https://krx-short-selling.vercel.app",
+  };
+
+  // BreadcrumbList 구조화 데이터
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "공매도 랭킹",
+        item: "https://krx-short-selling.vercel.app",
+      },
+      ...(data.stock.sector
+        ? [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: data.stock.sector,
+              item: `https://krx-short-selling.vercel.app/sectors/${encodeURIComponent(data.stock.sector)}`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: data.stock.name,
+              item: `https://krx-short-selling.vercel.app/stock/${ticker}`,
+            },
+          ]
+        : [
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: data.stock.name,
+              item: `https://krx-short-selling.vercel.app/stock/${ticker}`,
+            },
+          ]),
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
+
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -425,6 +502,14 @@ export default async function StockPage({ params }: PageProps) {
         <div className="text-sm text-zinc-500 mb-6">
           <Link href="/" className="hover:text-zinc-300 transition-colors">공매도</Link>
           <span className="mx-2">/</span>
+          {data.stock.sector && (
+            <>
+              <Link href={`/sectors/${encodeURIComponent(data.stock.sector)}`} className="hover:text-zinc-300 transition-colors">
+                {data.stock.sector}
+              </Link>
+              <span className="mx-2">/</span>
+            </>
+          )}
           <span className="text-zinc-300">{data.stock.name}</span>
         </div>
 

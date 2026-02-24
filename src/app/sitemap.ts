@@ -50,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 동적 종목 페이지 - Supabase에서 전체 종목 조회
   const { data: stocks } = await supabase
     .from("stocks")
-    .select("ticker")
+    .select("ticker, sector")
     .order("ticker");
 
   const stockPages: MetadataRoute.Sitemap = (stocks || []).map((stock) => ({
@@ -60,5 +60,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...stockPages];
+  // 업종별 허브 페이지
+  const sectors = [...new Set(
+    (stocks || [])
+      .map((s) => s.sector)
+      .filter((s): s is string => s !== null)
+  )];
+
+  const sectorPages: MetadataRoute.Sitemap = sectors.map((sector) => ({
+    url: `${baseUrl}/sectors/${encodeURIComponent(sector)}`,
+    lastModified: lastmod,
+    changeFrequency: "daily" as const,
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...sectorPages, ...stockPages];
 }
