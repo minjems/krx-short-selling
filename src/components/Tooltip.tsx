@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 export function Tooltip({
   text,
@@ -12,23 +13,28 @@ export function Tooltip({
   className?: string;
 }) {
   const [show, setShow] = useState(false);
-  const [pos, setPos] = useState<"top" | "bottom">("top");
-  const tipRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ x: 0, y: 0, pos: "top" as "top" | "bottom" });
   const wrapRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    if (show && wrapRef.current) {
+  const handleEnter = useCallback(() => {
+    if (wrapRef.current) {
       const rect = wrapRef.current.getBoundingClientRect();
-      // 위에 공간이 부족하면 아래로
-      setPos(rect.top < 80 ? "bottom" : "top");
+      const centerX = rect.left + rect.width / 2;
+      const pos = rect.top < 100 ? "bottom" : "top";
+      setCoords({
+        x: centerX,
+        y: pos === "top" ? rect.top : rect.bottom,
+        pos,
+      });
     }
-  }, [show]);
+    setShow(true);
+  }, []);
 
   return (
     <span
       ref={wrapRef}
       className={`relative inline-flex items-center ${className}`}
-      onMouseEnter={() => setShow(true)}
+      onMouseEnter={handleEnter}
       onMouseLeave={() => setShow(false)}
     >
       {children}
@@ -43,25 +49,33 @@ export function Tooltip({
           clipRule="evenodd"
         />
       </svg>
-      {show && (
-        <div
-          ref={tipRef}
-          className={`absolute z-50 w-56 px-3 py-2 text-xs font-normal text-zinc-200 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg leading-relaxed whitespace-normal ${
-            pos === "top"
-              ? "bottom-full mb-2 left-1/2 -translate-x-1/2"
-              : "top-full mt-2 left-1/2 -translate-x-1/2"
-          }`}
-        >
-          {text}
+      {show &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-800 border-zinc-700 rotate-45 ${
-              pos === "top"
-                ? "top-full -mt-1 border-b border-r"
-                : "bottom-full -mb-1 border-t border-l"
-            }`}
-          />
-        </div>
-      )}
+            style={{
+              position: "fixed",
+              left: coords.x,
+              top: coords.pos === "top" ? coords.y - 8 : coords.y + 8,
+              transform:
+                coords.pos === "top"
+                  ? "translate(-50%, -100%)"
+                  : "translate(-50%, 0)",
+              zIndex: 9999,
+            }}
+            className="w-56 px-3 py-2 text-xs font-normal text-zinc-200 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg leading-relaxed whitespace-normal"
+          >
+            {text}
+            <div
+              className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-800 border-zinc-700 rotate-45 ${
+                coords.pos === "top"
+                  ? "top-full -mt-1 border-b border-r"
+                  : "bottom-full -mb-1 border-t border-l"
+              }`}
+            />
+          </div>,
+          document.body
+        )}
     </span>
   );
 }
