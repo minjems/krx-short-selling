@@ -41,6 +41,144 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+type VolumeItem = {
+  date: string;
+  totalVolume: number;
+  shortVolume: number;
+  shortRatio: number;
+  closePrice: number;
+};
+type BalanceItem = {
+  date: string;
+  balanceQuantity: number;
+  balanceAmount: number;
+  balanceRatio: number;
+};
+type InvestorFlowData = Record<string, { date: string; netValue: number }[]>;
+
+function generateAnalysis(
+  stockName: string,
+  volumeHistory: VolumeItem[],
+  balanceHistory: BalanceItem[],
+  investorHistory: InvestorFlowData,
+): string[] {
+  const insights: string[] = [];
+  if (volumeHistory.length < 2) return insights;
+
+  const latest = volumeHistory[volumeHistory.length - 1];
+  const prev = volumeHistory[volumeHistory.length - 2];
+
+  // 공매도 비중 변동
+  const ratioDiff = latest.shortRatio - prev.shortRatio;
+  if (Math.abs(ratioDiff) >= 0.5) {
+    insights.push(
+      `${stockName}의 공매도 비중이 전일 대비 ${Math.abs(ratioDiff).toFixed(2)}%p ${ratioDiff > 0 ? "상승" : "하락"}하여 ${latest.shortRatio.toFixed(2)}%를 기록했습니다.`
+    );
+  }
+
+  // 최근 5일 평균 대비 비교
+  if (volumeHistory.length >= 6) {
+    const recent5 = volumeHistory.slice(-6, -1);
+    const avg5 = recent5.reduce((s, r) => s + r.shortRatio, 0) / recent5.length;
+    const diffFromAvg = ((latest.shortRatio - avg5) / avg5) * 100;
+    if (Math.abs(diffFromAvg) >= 30) {
+      insights.push(
+        `최근 5거래일 평균(${avg5.toFixed(2)}%) 대비 ${Math.abs(diffFromAvg).toFixed(0)}% ${diffFromAvg > 0 ? "높은" : "낮은"} 수준입니다.`
+      );
+    }
+  }
+
+  // 90일 내 최고/최저
+  const allRatios = volumeHistory.map((r) => r.shortRatio);
+  const maxRatio = Math.max(...allRatios);
+  const minRatio = Math.min(...allRatios);
+  if (latest.shortRatio === maxRatio && volumeHistory.length >= 20) {
+    insights.push("현재 공매도 비중은 최근 3개월 중 최고 수준입니다.");
+  } else if (latest.shortRatio === minRatio && volumeHistory.length >= 20) {
+    insights.push("현재 공매도 비중은 최근 3개월 중 최저 수준입니다.");
+  }
+
+  // 잔고비율 추세
+  if (balanceHistory.length >= 5) {
+    const recentBalance = balanceHistory.slice(-5);
+    const increasing = recentBalance.every(
+      (b, i) => i === 0 || b.balanceRatio >= recentBalance[i - 1].balanceRatio
+    );
+    const decreasing = recentBalance.every(
+      (b, i) => i === 0 || b.balanceRatio <= recentBalance[i - 1].balanceRatio
+    );
+    if (increasing) {
+      insights.push("공매도 잔고비율이 5거래일 연속 상승하고 있습니다.");
+    } else if (decreasing) {
+      insights.push("공매도 잔고비율이 5거래일 연속 하락하고 있습니다.");
+    }
+  }
+
+  // 투자자 수급 연속성
+  const investorNames: Record<string, string> = {
+    "8000": "외국인",
+    "9000": "기관",
+    "7050": "개인",
+  };
+  for (const [code, name] of Object.entries(investorNames)) {
+    const flows = investorHistory[code];
+    if (!flows || flows.length < 3) continue;
+    const recent3 = flows.slice(-3);
+    const allBuy = recent3.every((f) => f.netValue > 0);
+    const allSell = recent3.every((f) => f.netValue < 0);
+    if (allBuy) {
+      insights.push(`${name}이 3거래일 연속 순매수 중입니다.`);
+    } else if (allSell) {
+      insights.push(`${name}이 3거래일 연속 순매도 중입니다.`);
+    }
+  }
+
+  return insights.slice(0, 4); // 최대 4문장
+}
+
+type RelatedStock = {
+  ticker: string;
+  name: string;
+  market: string;
+  shortRatio: number;
+};
+
+async function getRelatedStocks(
+  ticker: string,
+  sector: string | null,
+  market: string,
+): Promise<RelatedStock[]> {
+  if (!sector) return [];
+
+  // 같은 업종 종목 중 공매도 비중 상위 (자신 제외)
+  const { data: latest } = await supabase
+    .from("short_volume")
+    .select("trade_date")
+    .order("trade_date", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!latest) return [];
+
+  const { data: rows } = await supabase
+    .from("short_volume")
+    .select("ticker, short_ratio, stocks!inner(name, market, sector)")
+    .eq("trade_date", latest.trade_date)
+    .eq("stocks.sector", sector)
+    .neq("ticker", ticker)
+    .order("short_ratio", { ascending: false })
+    .limit(8);
+
+  if (!rows) return [];
+
+  return rows.map((r) => ({
+    ticker: r.ticker,
+    name: (r.stocks as unknown as { name: string; market: string }).name,
+    market: (r.stocks as unknown as { name: string; market: string }).market,
+    shortRatio: r.short_ratio,
+  }));
+}
+
 async function getStockData(ticker: string) {
   // 종목 기본 정보 (sector 포함)
   const { data: stock } = await supabase
@@ -208,6 +346,35 @@ async function getStockData(ticker: string) {
       : null,
     sectorAvg,
     financialData,
+    analysis: generateAnalysis(
+      stock.name,
+      (volumeData || []).map((row) => ({
+        date: row.trade_date,
+        totalVolume: row.total_volume,
+        shortVolume: row.short_volume,
+        shortRatio: row.short_ratio,
+        closePrice: row.close_price,
+      })),
+      (balanceData || []).map((row) => ({
+        date: row.trade_date,
+        balanceQuantity: row.balance_quantity,
+        balanceAmount: row.balance_amount,
+        balanceRatio: row.balance_ratio,
+      })),
+      (() => {
+        const byType: Record<string, { date: string; netValue: number }[]> = {
+          "8000": [], "9000": [], "7050": [],
+        };
+        for (const row of (investorData || [])) {
+          byType[row.investor_type]?.push({
+            date: row.trade_date,
+            netValue: row.net_value,
+          });
+        }
+        return byType;
+      })(),
+    ),
+    relatedStocks: await getRelatedStocks(ticker, stock.sector, stock.market),
   };
 }
 
@@ -280,6 +447,24 @@ export default async function StockPage({ params }: PageProps) {
           </div>
         </div>
 
+        {/* Auto Analysis (server-rendered for SEO) */}
+        {data.analysis.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mb-8">
+            <h3 className="text-base font-semibold mb-3">종목 분석 요약</h3>
+            <ul className="space-y-2">
+              {data.analysis.map((text, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-zinc-300 leading-relaxed">
+                  <span className="text-zinc-500 mt-0.5 shrink-0">&#8226;</span>
+                  {text}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[10px] text-zinc-600 mt-3">
+              {data.summary.volumeDate} 기준 자동 생성 분석입니다. 투자 판단의 근거로 사용하지 마십시오.
+            </p>
+          </div>
+        )}
+
         {/* Pass all data to client component for charts */}
         <StockDetailClient
           summary={data.summary}
@@ -291,6 +476,38 @@ export default async function StockPage({ params }: PageProps) {
           financialData={data.financialData}
           sector={data.stock.sector}
         />
+
+        {/* Related Stocks (same sector) */}
+        {data.relatedStocks.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6 mt-6">
+            <h3 className="text-base font-semibold mb-4">
+              같은 업종 ({data.stock.sector}) 종목
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {data.relatedStocks.map((rs) => (
+                <Link
+                  key={rs.ticker}
+                  href={`/stock/${rs.ticker}`}
+                  className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-3 hover:border-zinc-600 transition-colors"
+                >
+                  <div className="text-sm font-medium text-zinc-200 truncate">{rs.name}</div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-zinc-500 font-mono">{rs.ticker}</span>
+                    <span className={`text-xs font-medium ${
+                      rs.shortRatio >= 10
+                        ? "text-red-400"
+                        : rs.shortRatio >= 5
+                        ? "text-yellow-400"
+                        : "text-zinc-400"
+                    }`}>
+                      {rs.shortRatio.toFixed(1)}%
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
