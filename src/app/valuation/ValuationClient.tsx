@@ -17,6 +17,10 @@ import type { ValuationItem } from "./page";
 
 type RankingTab = "undervalued" | "overvalued";
 type Market = "ALL" | "KOSPI" | "KOSDAQ";
+type SortKey = "upside" | "grade" | "price" | "fairValue" | "roe" | "operatingMargin";
+type SortDir = "asc" | "desc";
+
+const GRADE_ORDER: Record<string, number> = { A: 1, B: 2, C: 3, D: 4, F: 5 };
 
 function toFinancialData(item: ValuationItem): FinancialData | null {
   if (item.roe === null && item.debtRatio === null && item.operatingMargin === null &&
@@ -59,6 +63,20 @@ export function ValuationClient({
   const [market, setMarket] = useState<Market>("ALL");
   const [search, setSearch] = useState("");
   const [selectedSector, setSelectedSector] = useState<string>("ALL");
+  const [sortKey, setSortKey] = useState<SortKey>("upside");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "grade" ? "asc" : "desc");
+    }
+  };
+
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === "desc" ? "↓" : "↑") : "↕";
 
   const sectorAverages = useMemo(() => calcSectorAverages(data), [data]);
 
@@ -96,30 +114,48 @@ export function ValuationClient({
       );
     }
 
-    // 정렬: 품질 데이터 있는 종목 우선, 없으면서 극단값(5배 이상)은 후순위
+    // 신뢰도 판별 (품질 데이터 없으면서 극단값인 종목은 후순위)
     const hasQuality = (item: EnrichedItem) => item.fv!.qualityScore >= 0;
     const isExtreme = (item: EnrichedItem) => Math.abs(item.fv!.upsidePct) >= 400;
+    const isReliable = (item: EnrichedItem) => hasQuality(item) || !isExtreme(item);
 
-    if (tab === "undervalued") {
-      result.sort((a, b) => {
-        const aReliable = hasQuality(a) || !isExtreme(a);
-        const bReliable = hasQuality(b) || !isExtreme(b);
-        if (aReliable !== bReliable) return aReliable ? -1 : 1;
-        return b.fv!.upsidePct - a.fv!.upsidePct;
-      });
-    } else {
-      result.sort((a, b) => {
-        const aReliable = hasQuality(a) || !isExtreme(a);
-        const bReliable = hasQuality(b) || !isExtreme(b);
-        if (aReliable !== bReliable) return aReliable ? -1 : 1;
-        return a.fv!.upsidePct - b.fv!.upsidePct;
-      });
-    }
+    const getGradeOrder = (item: EnrichedItem) => {
+      if (item.fv!.qualityScore < 0) return 99; // 등급 없음 → 최하위
+      const g = qualityGrade(item.fv!.qualityMultiplier);
+      return GRADE_ORDER[g] ?? 99;
+    };
+
+    const dir = sortDir === "desc" ? -1 : 1;
+
+    result.sort((a, b) => {
+      // 항상 신뢰도 높은 종목 우선
+      const aR = isReliable(a), bR = isReliable(b);
+      if (aR !== bR) return aR ? -1 : 1;
+
+      if (sortKey === "upside") {
+        const diff = a.fv!.upsidePct - b.fv!.upsidePct;
+        // 기본: 저평가 탭은 desc(큰 게 위), 고평가 탭은 asc(작은 게 위)
+        return tab === "undervalued" ? -diff * dir : diff * dir;
+      }
+      if (sortKey === "grade") {
+        const diff = getGradeOrder(a) - getGradeOrder(b);
+        if (diff !== 0) return diff * dir;
+        // 같은 등급 내에서는 upside 순
+        return tab === "undervalued"
+          ? b.fv!.upsidePct - a.fv!.upsidePct
+          : a.fv!.upsidePct - b.fv!.upsidePct;
+      }
+      if (sortKey === "price") return (a.closePrice - b.closePrice) * dir;
+      if (sortKey === "fairValue") return (a.fv!.fairValue - b.fv!.fairValue) * dir;
+      if (sortKey === "roe") return ((a.roe ?? -9999) - (b.roe ?? -9999)) * dir;
+      if (sortKey === "operatingMargin") return ((a.operatingMargin ?? -9999) - (b.operatingMargin ?? -9999)) * dir;
+      return 0;
+    });
 
     if (!hasActiveFilter && result.length > DISPLAY_LIMIT)
       return result.slice(0, DISPLAY_LIMIT);
     return result;
-  }, [enrichedData, tab, market, selectedSector, search, hasActiveFilter]);
+  }, [enrichedData, tab, market, selectedSector, search, hasActiveFilter, sortKey, sortDir]);
 
   const totalWithFV = useMemo(() => enrichedData.filter((i) => i.fv !== null).length, [enrichedData]);
 
@@ -215,13 +251,25 @@ export function ValuationClient({
             <tr className="border-b border-zinc-800 text-zinc-500 text-xs">
               <th className="text-left py-3 px-2 w-10">#</th>
               <th className="text-left py-3 px-2">종목</th>
-              <th className="text-right py-3 px-2">현재가</th>
-              <th className="text-right py-3 px-2">적정가</th>
-              <th className="text-right py-3 px-2">{tab === "undervalued" ? "저평가" : "고평가"}</th>
+              <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("price")}>
+                현재가{sortIndicator("price")}
+              </th>
+              <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("fairValue")}>
+                적정가{sortIndicator("fairValue")}
+              </th>
+              <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("upside")}>
+                {tab === "undervalued" ? "저평가" : "고평가"}{sortIndicator("upside")}
+              </th>
               <th className="text-center py-3 px-2 hidden sm:table-cell w-20"></th>
-              <th className="text-center py-3 px-2 hidden md:table-cell">등급</th>
-              <th className="text-right py-3 px-2 hidden lg:table-cell">ROE</th>
-              <th className="text-right py-3 px-2 hidden lg:table-cell">영업이익률</th>
+              <th className="text-center py-3 px-2 hidden md:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("grade")}>
+                등급{sortIndicator("grade")}
+              </th>
+              <th className="text-right py-3 px-2 hidden lg:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("roe")}>
+                ROE{sortIndicator("roe")}
+              </th>
+              <th className="text-right py-3 px-2 hidden lg:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("operatingMargin")}>
+                영업이익률{sortIndicator("operatingMargin")}
+              </th>
               <th className="text-left py-3 px-2 hidden xl:table-cell">업종</th>
             </tr>
           </thead>
