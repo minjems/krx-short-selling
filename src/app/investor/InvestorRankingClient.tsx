@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { formatBillions, formatNumber, netValueColor } from "@/lib/format";
+import { Tooltip } from "@/components/Tooltip";
 
 type InvestorType = "9000" | "8000" | "7050";
 type Period = 1 | 5 | 20;
@@ -209,28 +210,36 @@ export function InvestorRankingClient({ initialData, latestDate }: Props) {
                   className="py-3 px-2 text-right cursor-pointer select-none"
                   onClick={() => handleSort("net_value")}
                 >
-                  순매수대금
+                  <Tooltip text="매수한 금액에서 매도한 금액을 뺀 값이에요. 양수면 사들인 금액이 더 크고, 음수면 판 금액이 더 커요.">
+                    순매수대금
+                  </Tooltip>
                   <SortIcon col="net_value" />
                 </th>
                 <th
                   className="py-3 px-2 text-right cursor-pointer select-none hidden sm:table-cell"
                   onClick={() => handleSort("buy_value")}
                 >
-                  매수대금
+                  <Tooltip text="해당 투자자가 이 종목을 사는 데 쓴 총 금액이에요.">
+                    매수대금
+                  </Tooltip>
                   <SortIcon col="buy_value" />
                 </th>
                 <th
                   className="py-3 px-2 text-right cursor-pointer select-none hidden sm:table-cell"
                   onClick={() => handleSort("sell_value")}
                 >
-                  매도대금
+                  <Tooltip text="해당 투자자가 이 종목을 판 총 금액이에요.">
+                    매도대금
+                  </Tooltip>
                   <SortIcon col="sell_value" />
                 </th>
                 <th
                   className="py-3 px-2 text-right cursor-pointer select-none hidden lg:table-cell"
                   onClick={() => handleSort("net_volume")}
                 >
-                  순매수량
+                  <Tooltip text="매수한 주식 수에서 매도한 주식 수를 뺀 값이에요. 양수면 사들인 수량이 더 많아요.">
+                    순매수량
+                  </Tooltip>
                   <SortIcon col="net_volume" />
                 </th>
               </tr>

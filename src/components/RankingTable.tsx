@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Tooltip } from "@/components/Tooltip";
 
 type RankingItem = {
   ticker: string;
@@ -88,25 +89,37 @@ export function RankingTable({ data }: { data: RankingItem[] }) {
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
                 onClick={() => handleSort("shortRatio")}
               >
-                공매도비중<SortIcon col="shortRatio" />
+                <Tooltip text="하루 전체 거래량 중 공매도(주가 하락에 베팅하는 거래)가 차지하는 비율이에요. 높을수록 하락을 예상하는 투자자가 많다는 뜻이에요.">
+                  공매도비중
+                </Tooltip>
+                <SortIcon col="shortRatio" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
                 onClick={() => handleSort("shortVolume")}
               >
-                공매도량<SortIcon col="shortVolume" />
+                <Tooltip text="하루 동안 공매도로 거래된 주식 수예요. 빌린 주식을 팔아서 나중에 싸게 사서 갚으려는 거래량이에요.">
+                  공매도량
+                </Tooltip>
+                <SortIcon col="shortVolume" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
                 onClick={() => handleSort("totalVolume")}
               >
-                총거래량<SortIcon col="totalVolume" />
+                <Tooltip text="하루 동안 이 종목이 거래된 전체 주식 수예요. 공매도 + 일반 매매를 모두 합친 수치예요.">
+                  총거래량
+                </Tooltip>
+                <SortIcon col="totalVolume" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
                 onClick={() => handleSort("closePrice")}
               >
-                종가<SortIcon col="closePrice" />
+                <Tooltip text="그날 장이 마감했을 때의 최종 주가예요.">
+                  종가
+                </Tooltip>
+                <SortIcon col="closePrice" />
               </th>
             </tr>
           </thead>

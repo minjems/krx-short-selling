@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { formatBillions, netValueColor } from "@/lib/format";
+import { Tooltip } from "@/components/Tooltip";
 
 type ScreenerItem = {
   ticker: string;
@@ -321,42 +322,54 @@ export function ScreenerClient({
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
                 onClick={() => handleSort("shortRatio")}
               >
-                공매도비중
+                <Tooltip text="하루 전체 거래량 중 공매도가 차지하는 비율이에요. 높을수록 하락에 베팅하는 투자자가 많다는 뜻이에요.">
+                  공매도비중
+                </Tooltip>
                 <SortIcon col="shortRatio" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
                 onClick={() => handleSort("balanceRatio")}
               >
-                잔고비율
+                <Tooltip text="아직 갚지 않은 공매도 물량이 전체 상장 주식 수에서 차지하는 비율이에요. 높으면 하락 베팅이 많이 쌓여 있다는 뜻이에요.">
+                  잔고비율
+                </Tooltip>
                 <SortIcon col="balanceRatio" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200"
                 onClick={() => handleSort("foreignNet")}
               >
-                외국인
+                <Tooltip text="외국인 투자자의 순매수 금액이에요. 양수면 외국인이 사들이는 중, 음수면 팔고 있는 중이에요.">
+                  외국인
+                </Tooltip>
                 <SortIcon col="foreignNet" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden md:table-cell"
                 onClick={() => handleSort("institutionNet")}
               >
-                기관
+                <Tooltip text="기관 투자자(증권사, 보험사, 연기금 등)의 순매수 금액이에요.">
+                  기관
+                </Tooltip>
                 <SortIcon col="institutionNet" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden lg:table-cell"
                 onClick={() => handleSort("individualNet")}
               >
-                개인
+                <Tooltip text="개인 투자자의 순매수 금액이에요.">
+                  개인
+                </Tooltip>
                 <SortIcon col="individualNet" />
               </th>
               <th
                 className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-200 hidden lg:table-cell"
                 onClick={() => handleSort("closePrice")}
               >
-                종가
+                <Tooltip text="그날 장이 마감했을 때의 최종 주가예요.">
+                  종가
+                </Tooltip>
                 <SortIcon col="closePrice" />
               </th>
             </tr>

@@ -11,6 +11,7 @@ import {
   roeColor,
   operatingMarginColor,
 } from "@/lib/format";
+import { Tooltip } from "@/components/Tooltip";
 import { calcSectorAverages, calcFairValue } from "@/lib/fairValue";
 import type { FairValueResult, SectorAvg, FinancialData } from "@/lib/fairValue";
 import type { ValuationItem } from "./page";
@@ -252,23 +253,41 @@ export function ValuationClient({
               <th className="text-left py-3 px-2 w-10">#</th>
               <th className="text-left py-3 px-2">종목</th>
               <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("price")}>
-                현재가{sortIndicator("price")}
+                <Tooltip text="현재 주식 1주의 가격이에요. 장 마감 기준 종가예요.">
+                  현재가
+                </Tooltip>
+                {sortIndicator("price")}
               </th>
               <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("fairValue")}>
-                적정가{sortIndicator("fairValue")}
+                <Tooltip text="같은 업종의 평균 PER·PBR과 재무 건전성을 기반으로 계산한 이론적 주가예요. 현재가와 비교해서 저평가·고평가를 판단해요.">
+                  적정가
+                </Tooltip>
+                {sortIndicator("fairValue")}
               </th>
               <th className="text-right py-3 px-2 cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("upside")}>
-                {tab === "undervalued" ? "저평가" : "고평가"}{sortIndicator("upside")}
+                <Tooltip text={tab === "undervalued" ? "적정가 대비 현재가가 얼마나 싼지를 나타내요. 비율이 클수록 시장에서 저평가 받고 있다는 의미예요." : "적정가 대비 현재가가 얼마나 비싼지를 나타내요. 비율이 클수록 시장에서 고평가 받고 있다는 의미예요."}>
+                  {tab === "undervalued" ? "저평가" : "고평가"}
+                </Tooltip>
+                {sortIndicator("upside")}
               </th>
               <th className="text-center py-3 px-2 hidden sm:table-cell w-20"></th>
               <th className="text-center py-3 px-2 hidden md:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("grade")}>
-                등급{sortIndicator("grade")}
+                <Tooltip text="기업의 재무 건전성 등급이에요. ROE, 영업이익률, 부채비율, 매출성장률, 현금흐름을 종합해서 A(우량)~F(부실)로 평가해요.">
+                  등급
+                </Tooltip>
+                {sortIndicator("grade")}
               </th>
               <th className="text-right py-3 px-2 hidden lg:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("roe")}>
-                ROE{sortIndicator("roe")}
+                <Tooltip text="자기자본이익률(Return on Equity). 주주가 투자한 돈으로 얼마나 이익을 냈는지 보여줘요. 높을수록 돈을 잘 버는 기업이에요.">
+                  ROE
+                </Tooltip>
+                {sortIndicator("roe")}
               </th>
               <th className="text-right py-3 px-2 hidden lg:table-cell cursor-pointer select-none hover:text-zinc-300 transition-colors" onClick={() => toggleSort("operatingMargin")}>
-                영업이익률{sortIndicator("operatingMargin")}
+                <Tooltip text="매출 중 본업에서 남긴 이익의 비율이에요. 높을수록 본업의 수익성이 좋은 기업이에요. 음수면 본업에서 적자예요.">
+                  영업이익률
+                </Tooltip>
+                {sortIndicator("operatingMargin")}
               </th>
               <th className="text-left py-3 px-2 hidden xl:table-cell">업종</th>
             </tr>
