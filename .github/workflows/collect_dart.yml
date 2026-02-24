@@ -1,0 +1,33 @@
+name: DART 재무제표 수집
+
+on:
+  schedule:
+    # UTC 토요일 3AM = KST 토요일 정오
+    - cron: '0 3 * * 6'
+  workflow_dispatch: {}
+
+jobs:
+  collect-dart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests psycopg2-binary
+
+      - name: Run DART collection
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python scripts/collect_dart.py
