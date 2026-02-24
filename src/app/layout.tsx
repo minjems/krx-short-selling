@@ -54,6 +54,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: "YufDPt2qLUO6zjLNoexu0TlVw-Ks_HoPHWytZcQf3hQ",
+  },
   other: {
     "content-language": "ko-kr",
   },
