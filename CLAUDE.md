@@ -10,10 +10,21 @@
 - `src/app/investor/page.tsx` — 투자자별 수급
 - `src/app/valuation/page.tsx` + `ValuationClient.tsx` — 저·고평가 랭킹
 - `src/app/screener/page.tsx` — 종목 검색 스크리너
-- `src/app/stock/[ticker]/page.tsx` + `StockDetailClient.tsx` — 종목 상세
+- `src/app/stock/[ticker]/page.tsx` + `StockDetailClient.tsx` — 종목 상세 (자동 분석 + 관련 종목)
+- `src/app/sectors/[sector]/page.tsx` — 업종별 허브 (28개 업종)
 - `src/lib/fairValue.ts` — 적정가 모델 (품질 조정 로직)
 - `src/lib/format.ts` — 포맷팅 유틸 (색상, 등급, 숫자 표시)
 - `src/lib/supabase.ts` — Supabase 클라이언트
+
+### SEO
+- `src/app/robots.ts` — 크롤러 규칙 (Yeti/Googlebot 허용, /api/ 차단)
+- `src/app/sitemap.ts` — 동적 사이트맵 (정적 4 + 업종 28 + 종목 2,000+ URL)
+- 전 페이지 OG 태그, twitter card, canonical URL, content-language
+- 종목 상세: Dataset + BreadcrumbList JSON-LD 구조화 데이터
+- 종목 상세: 데이터 기반 자동 분석 텍스트 (서버 렌더링)
+- 종목 상세: 같은 업종 관련 종목 내부 링크
+- Google Search Console: 소유권 확인 완료 (HTML 메타태그) + sitemap.xml 제출
+- 네이버 서치어드바이저: 소유권 확인 완료 (HTML 메타태그) + sitemap.xml 제출
 
 ### 데이터 수집 스크립트
 - `scripts/collect.py` — 일별 KRX 데이터 (pykrx)
@@ -60,3 +71,5 @@
 
 ## TODO (다음 세션)
 - DART 재무제표 전체 수집 미실행 (삼성전자만 테스트 완료). GitHub Actions workflow_dispatch로 수동 실행하거나 토요일 자동 실행 대기.
+- 프리미엄 구독 기능 (3~4개월차 예정)
+- 검색엔진 색인 상태 확인 (2~3일 후 Google Search Console, 네이버 서치어드바이저에서 확인)
