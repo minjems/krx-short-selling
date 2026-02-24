@@ -21,12 +21,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "종목을 찾을 수 없습니다" };
   }
 
+  const desc = `${stock.name}(${ticker}) ${stock.market} 공매도 비중, 잔고비율, 투자자별 수급 추이 차트 및 상세 데이터`;
+
   return {
     title: `${stock.name}(${ticker}) 공매도 현황`,
-    description: `${stock.name}(${ticker}) ${stock.market} 공매도 비중, 잔고비율, 투자자별 수급 추이 차트 및 상세 데이터`,
+    description: desc,
     openGraph: {
       title: `${stock.name}(${ticker}) 공매도·수급 현황 - KRX 공매도·수급`,
       description: `${stock.name} 공매도 비중·잔고비율·투자자 수급 추이 차트`,
+    },
+    twitter: {
+      card: "summary",
+      title: `${stock.name}(${ticker}) 공매도·수급 현황`,
+      description: desc,
+    },
+    alternates: {
+      canonical: `/stock/${ticker}`,
     },
   };
 }

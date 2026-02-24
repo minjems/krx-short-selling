@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://krx-short-selling.vercel.app"),
   title: {
     default: "KRX 공매도·수급 - 한국 주식시장 공매도·수급 데이터",
     template: "%s - KRX 공매도·수급",
@@ -43,9 +44,18 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     siteName: "KRX 공매도·수급",
   },
+  twitter: {
+    card: "summary",
+    title: "KRX 공매도·수급 - 한국 주식시장 공매도·수급 데이터",
+    description:
+      "코스피·코스닥 공매도 비중 랭킹, 외국인·기관·개인 수급 랭킹, 종목별 차트",
+  },
   robots: {
     index: true,
     follow: true,
+  },
+  other: {
+    "content-language": "ko-kr",
   },
 };
 

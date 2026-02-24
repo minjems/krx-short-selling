@@ -1,9 +1,28 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { RankingTable } from "@/components/RankingTable";
 import { AdBanner } from "@/components/AdBanner";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "공매도 비중 랭킹 - KRX 공매도·수급",
+  description:
+    "코스피·코스닥 공매도 비중 상위 종목 랭킹. 매일 업데이트되는 공매도 거래량, 잔고비율 데이터를 확인하세요.",
+  openGraph: {
+    title: "공매도 비중 랭킹 - KRX 공매도·수급",
+    description: "코스피·코스닥 공매도 비중 상위 종목 랭킹. 매일 업데이트.",
+  },
+  twitter: {
+    card: "summary",
+    title: "공매도 비중 랭킹 - KRX 공매도·수급",
+    description: "코스피·코스닥 공매도 비중 상위 종목 랭킹. 매일 업데이트.",
+  },
+  alternates: {
+    canonical: "/",
+  },
+};
 
 type RankingItem = {
   ticker: string;

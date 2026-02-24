@@ -9,6 +9,18 @@ export const metadata = {
   title: "저·고평가 분석 - KRX 공매도·수급",
   description:
     "코스피·코스닥 전종목 업종 평균 PER·PBR 기반 품질 조정 적정가 분석. 재무 건전성(ROE·영업이익률·부채비율·매출성장률) 반영.",
+  openGraph: {
+    title: "저·고평가 분석 - KRX 공매도·수급",
+    description: "업종 평균 PER·PBR 기반 적정가 분석. 재무 건전성 반영 품질 조정.",
+  },
+  twitter: {
+    card: "summary",
+    title: "저·고평가 분석 - KRX 공매도·수급",
+    description: "업종 평균 PER·PBR 기반 적정가 분석. 재무 건전성 반영 품질 조정.",
+  },
+  alternates: {
+    canonical: "/valuation",
+  },
 };
 
 export type ValuationItem = {

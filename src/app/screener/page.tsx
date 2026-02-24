@@ -9,6 +9,18 @@ export const metadata = {
   title: "종목 검색",
   description:
     "공매도 비중, 잔고비율, 투자자별 수급 필터로 종목을 검색합니다. 외국인·기관·개인 순매수대금 기준 정렬 지원.",
+  openGraph: {
+    title: "종목 검색 - KRX 공매도·수급",
+    description: "공매도·잔고·수급 필터로 종목 검색. 다양한 조건 조합 지원.",
+  },
+  twitter: {
+    card: "summary",
+    title: "종목 검색 - KRX 공매도·수급",
+    description: "공매도·잔고·수급 필터로 종목 검색. 다양한 조건 조합 지원.",
+  },
+  alternates: {
+    canonical: "/screener",
+  },
 };
 
 async function getScreenerData() {

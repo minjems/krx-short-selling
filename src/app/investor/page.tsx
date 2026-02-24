@@ -9,6 +9,18 @@ export const metadata = {
   title: "투자자별 수급 랭킹",
   description:
     "코스피·코스닥 외국인, 기관, 개인 순매수·순매도 상위 종목 랭킹. 1일/5일/20일 기간별 투자자 수급 데이터.",
+  openGraph: {
+    title: "투자자별 수급 랭킹 - KRX 공매도·수급",
+    description: "외국인·기관·개인 순매수/순매도 상위 종목. 기간별 수급 추이.",
+  },
+  twitter: {
+    card: "summary",
+    title: "투자자별 수급 랭킹 - KRX 공매도·수급",
+    description: "외국인·기관·개인 순매수/순매도 상위 종목. 기간별 수급 추이.",
+  },
+  alternates: {
+    canonical: "/investor",
+  },
 };
 
 type RankingItem = {
