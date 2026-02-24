@@ -59,5 +59,4 @@
 - corp_codes.json에 ~3,942개 종목 매핑. 새 상장 종목은 DART에서 업데이트 필요.
 
 ## TODO (다음 세션)
-- `.github/workflows/collect_dart.yml` push 필요 — `gh` 토큰에 `workflow` 스코프 추가 필요 (`gh auth refresh -h github.com -s workflow` 후 device flow 완료). 파일은 로컬에 있고 커밋만 안 된 상태.
-- DART 재무제표 전체 수집 미실행 (삼성전자만 테스트 완료). GitHub Actions 또는 수동 실행 필요.
+- DART 재무제표 전체 수집 미실행 (삼성전자만 테스트 완료). GitHub Actions workflow_dispatch로 수동 실행하거나 토요일 자동 실행 대기.
