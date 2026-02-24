@@ -22,6 +22,7 @@ import {
   debtRatioColor,
   revenueGrowthColor,
 } from "@/lib/format";
+import { Tooltip } from "@/components/Tooltip";
 import { calcFairValue } from "@/lib/fairValue";
 import type { FinancialData } from "@/lib/fairValue";
 
@@ -336,19 +337,25 @@ export function StockDetailClient({
             <div className="border-t border-zinc-800 p-4 sm:p-6">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
-                  <div className="text-xs text-zinc-500 mb-1">PER</div>
+                  <Tooltip text="주가수익비율. 주가를 주당순이익(EPS)으로 나눈 값. 낮을수록 이익 대비 저평가 가능성.">
+                    <span className="text-xs text-zinc-500">PER</span>
+                  </Tooltip>
                   <div className={`text-lg font-bold ${perColor(valuation.per)}`}>
                     {formatPer(valuation.per)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 mb-1">PBR</div>
+                  <Tooltip text="주가순자산비율. 주가를 주당순자산(BPS)으로 나눈 값. 1 미만이면 자산 대비 저평가 가능성.">
+                    <span className="text-xs text-zinc-500">PBR</span>
+                  </Tooltip>
                   <div className={`text-lg font-bold ${pbrColor(valuation.pbr)}`}>
                     {formatPbr(valuation.pbr)}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 mb-1">EPS</div>
+                  <Tooltip text="주당순이익. 순이익을 발행주식수로 나눈 값. 높을수록 수익성이 좋음.">
+                    <span className="text-xs text-zinc-500">EPS</span>
+                  </Tooltip>
                   <div className="text-lg font-bold text-zinc-300">
                     {valuation.eps !== null
                       ? `${formatNumber(valuation.eps)}원`
@@ -356,7 +363,9 @@ export function StockDetailClient({
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 mb-1">BPS</div>
+                  <Tooltip text="주당순자산. 순자산을 발행주식수로 나눈 값. 기업 청산 시 주당 받을 수 있는 금액.">
+                    <span className="text-xs text-zinc-500">BPS</span>
+                  </Tooltip>
                   <div className="text-lg font-bold text-zinc-300">
                     {valuation.bps !== null
                       ? `${formatNumber(valuation.bps)}원`
@@ -364,7 +373,9 @@ export function StockDetailClient({
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-zinc-500 mb-1">배당수익률</div>
+                  <Tooltip text="주당 배당금을 현재 주가로 나눈 비율. 높을수록 배당 투자 매력이 큼.">
+                    <span className="text-xs text-zinc-500">배당수익률</span>
+                  </Tooltip>
                   <div
                     className={`text-lg font-bold ${dvdYldColor(valuation.dvdYld)}`}
                   >
