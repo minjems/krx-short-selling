@@ -59,6 +59,7 @@ export const metadata: Metadata = {
   },
   other: {
     "content-language": "ko-kr",
+    "naver-site-verification": "5a7c60139fb60e21718ea34f1c9320e011aa345b",
   },
 };
 
