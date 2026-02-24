@@ -141,7 +141,9 @@ export function StockDetailClient({
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">종가</div>
+          <Tooltip text="해당 거래일의 마지막 체결 가격.">
+            <span className="text-xs text-zinc-500">종가</span>
+          </Tooltip>
           <div className="text-lg font-bold">
             {summary.closePrice > 0
               ? `${formatNumber(summary.closePrice)}원`
@@ -152,7 +154,9 @@ export function StockDetailClient({
           )}
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">공매도 비중</div>
+          <Tooltip text="전체 거래량 중 공매도가 차지하는 비율. 높을수록 하락 베팅이 많음.">
+            <span className="text-xs text-zinc-500">공매도 비중</span>
+          </Tooltip>
           <div className={`text-lg font-bold ${ratioColor(summary.shortRatio)}`}>
             {summary.shortRatio.toFixed(2)}%
           </div>
@@ -161,7 +165,9 @@ export function StockDetailClient({
           )}
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">잔고비율</div>
+          <Tooltip text="상장주식수 대비 공매도 미상환 잔고 비율. 높을수록 숏 포지션이 많이 쌓여 있음.">
+            <span className="text-xs text-zinc-500">잔고비율</span>
+          </Tooltip>
           <div className={`text-lg font-bold ${ratioColor(summary.balanceRatio)}`}>
             {summary.balanceRatio.toFixed(2)}%
           </div>
@@ -170,7 +176,9 @@ export function StockDetailClient({
           )}
         </div>
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <div className="text-xs text-zinc-500 mb-1">공매도량</div>
+          <Tooltip text="해당 거래일에 공매도로 체결된 주식 수량.">
+            <span className="text-xs text-zinc-500">공매도량</span>
+          </Tooltip>
           <div className="text-lg font-bold">
             {summary.shortVolume > 0 ? formatNumber(summary.shortVolume) : "-"}
           </div>
@@ -296,25 +304,33 @@ export function StockDetailClient({
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <div className="text-xs text-zinc-500 mb-1">ROE</div>
+                    <Tooltip text="자기자본이익률. 자기자본 대비 순이익 비율. 높을수록 주주 자본을 효율적으로 활용.">
+                      <span className="text-xs text-zinc-500">ROE</span>
+                    </Tooltip>
                     <div className={`text-lg font-bold ${roeColor(financialData.roe)}`}>
                       {financialData.roe !== null ? `${financialData.roe.toFixed(1)}%` : "-"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-500 mb-1">영업이익률</div>
+                    <Tooltip text="매출액 대비 영업이익 비율. 높을수록 본업의 수익성이 좋음.">
+                      <span className="text-xs text-zinc-500">영업이익률</span>
+                    </Tooltip>
                     <div className={`text-lg font-bold ${operatingMarginColor(financialData.operatingMargin)}`}>
                       {financialData.operatingMargin !== null ? `${financialData.operatingMargin.toFixed(1)}%` : "-"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-500 mb-1">부채비율</div>
+                    <Tooltip text="자기자본 대비 부채 비율. 낮을수록 재무 안정성이 높음. 200% 이상이면 주의.">
+                      <span className="text-xs text-zinc-500">부채비율</span>
+                    </Tooltip>
                     <div className={`text-lg font-bold ${debtRatioColor(financialData.debtRatio)}`}>
                       {financialData.debtRatio !== null ? `${financialData.debtRatio.toFixed(1)}%` : "-"}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-zinc-500 mb-1">매출성장률</div>
+                    <Tooltip text="전년 대비 매출액 증가율. 양수면 성장, 음수면 역성장.">
+                      <span className="text-xs text-zinc-500">매출성장률</span>
+                    </Tooltip>
                     <div className={`text-lg font-bold ${revenueGrowthColor(financialData.revenueGrowth)}`}>
                       {financialData.revenueGrowth !== null
                         ? `${financialData.revenueGrowth > 0 ? "+" : ""}${financialData.revenueGrowth.toFixed(1)}%`
@@ -324,8 +340,10 @@ export function StockDetailClient({
                 </div>
                 {financialData.cashFromOps !== null && (
                   <div className="mt-3 pt-3 border-t border-zinc-800/50">
-                    <span className="text-xs text-zinc-500">영업현금흐름: </span>
-                    <span className={`text-sm font-medium ${financialData.cashFromOps > 0 ? "text-green-400" : "text-red-400"}`}>
+                    <Tooltip text="영업활동으로 실제 벌어들인 현금. 양수면 현금 창출력이 있음.">
+                      <span className="text-xs text-zinc-500">영업현금흐름:</span>
+                    </Tooltip>
+                    <span className={`text-sm font-medium ml-1 ${financialData.cashFromOps > 0 ? "text-green-400" : "text-red-400"}`}>
                       {formatBillions(financialData.cashFromOps)}
                     </span>
                   </div>
