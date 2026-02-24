@@ -207,8 +207,16 @@ export function calcFairValue(
 ): FairValueResult | null {
   if (closePrice <= 0) return null;
 
+  // 영업적자인데 EPS가 양수 = 일회성 이익(자산매각 등)으로 부풀려진 경우
+  // → EPS 기반 적정가를 신뢰할 수 없으므로 자산 기반만 사용
+  const hasOperatingLoss =
+    financial?.operatingMargin !== null &&
+    financial?.operatingMargin !== undefined &&
+    financial.operatingMargin < 0;
+  const useEarnings = !hasOperatingLoss;
+
   const earningsFV =
-    eps !== null && eps > 0 && sectorAvg.avgPer > 0
+    useEarnings && eps !== null && eps > 0 && sectorAvg.avgPer > 0
       ? sectorAvg.avgPer * eps
       : null;
 
